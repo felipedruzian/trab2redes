@@ -1,0 +1,110 @@
+Trabalho Prático 2 – Redes de computadores
+Sistema de Consulta Integrada (Pessoas e Empresas)
+
+Este documento descreve os requisitos para o desenvolvimento de uma aplicação web full-stack, focada
+na integração de diferentes fontes de dados e na comunicação cliente-servidor através de uma API.
+Objetivos específicos do Projeto:
+1. Desenvolver um sistema de login e autenticação de usuários;
+2. Desenvolver uma aplicação web;
+3. Permitir consultar informações sobre pessoas físicas (CPF) e jurídicas (CNPJ) de forma integrada;
+4. Buscar dados de dois bancos de dados distintos (basecpf.db e CNPJ.db);
+5. Correlacionar as informações e apresentar os resultados de maneira unificada;
+6. Mostrar todos os dados das pessoas, suas respectivas empresas, todos dados de cada empresa,
+seus respectivos sócios e etc.
+Arquitetura e Tecnologias:
+Backend (Servidor):
+Linguagem: Python
+Framework: Flask ou Django. (não são permitidas outras linguagens ou frameworks)
+Responsabilidades:
+Criar uma API RESTful para servir os dados;
+Gerenciar a conexão com os dois bancos de dados;
+Implementar toda a lógica de negócio para buscar e correlacionar os dados.
+
+Frontend (Cliente):
+Framework: Vue.js
+Cliente: Navegadores web (Chrome, Brave, Firefox ...).
+Responsabilidades:
+Criar um sistema de login e autenticação;
+Criar a interface do usuário (UI) para verificações e consultas;
+Consumir a API do backend para enviar buscas e receber dados;
+Renderizar os resultados de forma dinâmica e reativa na tela.
+
+Bancos de Dados:
+Dois arquivos SQLite serão fornecidos: basecpf.db e CNPJ.db;
+
+Use o sqlalquemy ou sqlite3 para acessar os bancos de dados;
+Estrutura dos Bancos de Dados:
+Utilize o dbeaver (identifique as tabelas e campos dos arquivos de banco de dados);
+Consultas devem ser com múltiplas threads.
+Funcionalidades Requeridas:
+Cenário 1: Busca por CPF ou Nome
+
+• O usuário digita um nome ou um CPF no campo de busca;
+• Aceite nomes incompletos na consulta;
+• Apresente lista de resultados de nomes;
+• Antes de consumir a API do backend verifique se o CPF é válido;
+• O Frontend envia o termo de busca para a API do Backend;
+• O Backend primeiro consulta a tabela cpf no basecpf.db para encontrar a
+pessoa;
+• Apresente na tela as pessoas encontradas;
+• O usuário deve escolher e identificação da pessoa;
+• Consuma o backend em busca de todas as empresas associadas a este
+Nome e CPF;
+• Apresente todos os dados das empresas associadas ao nome e cpf;
+• O backend busca os dados/detalhes para cada empresa encontrada;
+A API retorna um objeto JSON contendo:
+Uma lista de empresas em que ela é sócia, contendo (CNPJ, Razão Social, Nome
+Fantasia e todos os demais dados relacionados a empresa) para cada empresa
+encontrada.
+O Frontend recebe o JSON e exibe os dados de forma organizada.
+Cenário 2: Busca por CNPJ
+
+• O usuário digita um CNPJ no campo de busca;
+• O Frontend verifica se é um CNPJ válido;
+• O Frontend envia o CNPJ para a API do Backend;
+• O Backend primeiro consulta a tabela empresas no CNPJ.db para obter os
+dados da empresa;
+• Em seguida, busca na tabela socios todos os nomes e CPFs dos sócios
+associados àquele CNPJ;
+• Para cada CPF de sócio encontrado, o backend busca os detalhes da pessoa
+na tabela cpf do basecpf.db;
+A API retorna um objeto JSON contendo:
+
+Os dados da empresa (CNPJ, Razão Social, Nome Fantasia e etc);
+Lista de sócios, contendo (CPF, Nome, Sexo e data de nascimento) de cada um;
+O Frontend recebe o JSON e exibe os dados de forma organizada.
+
+Etapas Sugeridas para o Desenvolvimento:
+Backend (API)
+• Configurar o projeto Flask ou Django.
+• Estabelecer a conexão com os dois bancos de dados SQLite. Atenção: Frameworks
+como o Django ORM podem precisar de configuração extra para trabalhar com
+múltiplos bancos de dados.
+• Criar o endpoint da API (ex: GET /api/search).
+• Implementar a lógica de busca que recebe um parâmetro (query) e executa as
+consultas nos bancos de dados.
+• Garantir que a resposta da API seja um JSON bem estruturado.
+• Habilitar CORS para permitir que o frontend acesse a API.
+Frontend (UI)
+▪ Configurar o projeto com Vue CLI.
+▪ Criar os componentes da interface: um componente para a barra de busca e outro
+para a exibição dos resultados.
+▪ Gerenciar o estado da aplicação (termo de busca, resultados, estado de
+carregamento).
+▪ Implementar a chamada à API do backend (usando axios ou fetch) ao submeter o
+formulário de busca.
+▪ Renderizar condicionalmente os resultados com base no tipo de retorno (dados de
+pessoa ou dados de empresa).
+
+Critérios de Avaliação:
+• Funcionalidade (50%): A aplicação implementa corretamente todos os cenários de
+busca? Os dados correlacionados estão corretos?
+• Arquitetura e Boas Práticas (20%):
+o Backend: O código é limpo, organizado e a lógica da API está bem estruturada?
+o Frontend: O código é componentizado e o gerenciamento de estado é eficiente?
+o A separação entre cliente e servidor está clara?
+• Interface e Experiência do Usuário (20%):
+o A aplicação é fácil de usar? A apresentação dos resultados é clara?
+• Documentação (10%):
+o O projeto deve conter um arquivo README.md com instruções claras de como
+instalar as dependências e executar o backend e o frontend.
