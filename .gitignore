@@ -1,4 +1,6 @@
 *.db
 /__pycache__/
+/backend/__pycache__/
 /venv/
 /refs/
+trab2.txt

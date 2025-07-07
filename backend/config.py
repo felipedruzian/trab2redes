@@ -3,8 +3,8 @@ import os
 
 # Configurações do banco de dados
 DATABASE_CONFIG = {
-    'basecpf': 'basecpf.db',
-    'cnpj': 'cnpj.db'
+    'basecpf': 'backend/basecpf.db',
+    'cnpj': 'backend/cnpj.db'
 }
 
 # Configurações da API
@@ -38,7 +38,7 @@ def check_databases():
         print(f"AVISO: Os seguintes bancos de dados não foram encontrados:")
         for db in missing_dbs:
             print(f"  - {db}")
-        print("Certifique-se de que os arquivos de banco de dados estão na raiz do projeto.")
+        print("Certifique-se de que os arquivos de banco de dados estão no diretório backend.")
         return False
     return True
 
