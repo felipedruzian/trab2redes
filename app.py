@@ -1,9 +1,10 @@
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, send_from_directory
 from flask_cors import CORS
 import sqlite3
 import threading
 import re
 import logging
+import os
 from concurrent.futures import ThreadPoolExecutor
 from config import check_databases, API_CONFIG, CORS_CONFIG, THREAD_CONFIG, LOGGING_CONFIG
 
@@ -186,6 +187,16 @@ def search_partners_by_cnpj(cnpj):
         if conn_cpf:
             conn_cpf.close()
 
+# ROTA PRINCIPAL - Serve o frontend
+@app.route('/')
+def index():
+    """Serve a página principal (frontend)"""
+    try:
+        return send_from_directory('.', 'index.html')
+    except Exception as e:
+        logger.error(f"Erro ao servir index.html: {e}")
+        return jsonify({'error': 'Arquivo index.html não encontrado'}), 404
+
 @app.route('/api/search_person', methods=['POST'])
 def search_person():
     """Endpoint para buscar pessoas por CPF ou nome"""
@@ -306,6 +317,7 @@ def internal_error(error):
 if __name__ == '__main__':
     logger.info("Iniciando servidor Flask...")
     logger.info(f"Servidor rodando em http://{API_CONFIG['host']}:{API_CONFIG['port']}")
+    logger.info("Acesse http://localhost:5000 para usar a aplicação")
     app.run(
         debug=API_CONFIG['debug'], 
         host=API_CONFIG['host'], 

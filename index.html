@@ -3,193 +3,132 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sistema de Consulta Integrada</title>
+    <title>Sistema de Consulta Integrada - Debug</title>
     <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
     <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-        
         body {
             font-family: Arial, sans-serif;
+            margin: 20px;
             background-color: #f5f5f5;
         }
-        
         .container {
             max-width: 1200px;
             margin: 0 auto;
-            padding: 20px;
-        }
-        
-        .header {
-            background-color: #2c3e50;
-            color: white;
-            padding: 20px;
-            text-align: center;
-            border-radius: 8px;
-            margin-bottom: 20px;
-        }
-        
-        .search-section {
             background: white;
             padding: 20px;
             border-radius: 8px;
             box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .search-section {
+            margin-bottom: 30px;
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        .tabs {
             margin-bottom: 20px;
         }
-        
-        .search-tabs {
-            display: flex;
-            margin-bottom: 20px;
-        }
-        
         .tab-button {
-            background: #ecf0f1;
+            background: #e0e0e0;
             border: none;
             padding: 10px 20px;
+            margin-right: 10px;
             cursor: pointer;
             border-radius: 4px;
-            margin-right: 10px;
-            font-size: 16px;
         }
-        
         .tab-button.active {
-            background: #3498db;
+            background: #007bff;
             color: white;
         }
-        
         .search-form {
             display: flex;
             gap: 10px;
             margin-bottom: 20px;
         }
-        
         .search-input {
             flex: 1;
-            padding: 12px;
+            padding: 10px;
             border: 1px solid #ddd;
             border-radius: 4px;
             font-size: 16px;
         }
-        
         .search-button {
-            background: #27ae60;
+            background: #28a745;
             color: white;
             border: none;
-            padding: 12px 24px;
+            padding: 10px 20px;
             border-radius: 4px;
             cursor: pointer;
-            font-size: 16px;
         }
-        
-        .search-button:hover {
-            background: #219a52;
-        }
-        
         .search-button:disabled {
-            background: #bdc3c7;
+            background: #ccc;
             cursor: not-allowed;
         }
-        
+        .status {
+            margin: 20px 0;
+            padding: 10px;
+            border-radius: 4px;
+        }
         .loading {
-            text-align: center;
-            padding: 20px;
-            color: #666;
+            background: #d1ecf1;
+            border: 1px solid #bee5eb;
+            color: #0c5460;
         }
-        
         .error {
-            background: #e74c3c;
-            color: white;
-            padding: 15px;
-            border-radius: 4px;
-            margin-bottom: 20px;
+            background: #f8d7da;
+            border: 1px solid #f5c6cb;
+            color: #721c24;
         }
-        
-        .results {
-            background: white;
-            padding: 20px;
-            border-radius: 8px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        .success {
+            background: #d4edda;
+            border: 1px solid #c3e6cb;
+            color: #155724;
         }
-        
-        .person-card, .company-card {
-            border: 1px solid #ddd;
-            border-radius: 8px;
-            padding: 15px;
-            margin-bottom: 15px;
-        }
-        
-        .person-card h3, .company-card h3 {
-            color: #2c3e50;
-            margin-bottom: 10px;
-        }
-        
-        .person-info, .company-info {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 10px;
-        }
-        
-        .info-item {
+        .json-output {
             background: #f8f9fa;
-            padding: 8px;
+            border: 1px solid #e9ecef;
             border-radius: 4px;
-        }
-        
-        .info-label {
-            font-weight: bold;
-            color: #34495e;
-        }
-        
-        .people-list {
-            max-height: 400px;
+            padding: 15px;
+            margin: 20px 0;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            white-space: pre-wrap;
+            max-height: 600px;
             overflow-y: auto;
         }
-        
+        .people-list {
+            margin: 20px 0;
+        }
         .person-item {
             padding: 10px;
-            border-bottom: 1px solid #eee;
+            border: 1px solid #ddd;
+            margin: 5px 0;
             cursor: pointer;
-            transition: background-color 0.2s;
+            border-radius: 4px;
+            background: #f8f9fa;
         }
-        
         .person-item:hover {
-            background-color: #f8f9fa;
+            background: #e9ecef;
         }
-        
-        .section-title {
-            color: #2c3e50;
-            margin: 20px 0 10px 0;
-            border-bottom: 2px solid #3498db;
-            padding-bottom: 5px;
-        }
-        
-        .companies-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-            gap: 15px;
-        }
-        
-        .partners-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-            gap: 15px;
+        .endpoint-info {
+            margin: 10px 0;
+            padding: 10px;
+            background: #e7f3ff;
+            border-left: 4px solid #007bff;
         }
     </style>
 </head>
 <body>
     <div id="app">
         <div class="container">
-            <div class="header">
-                <h1>Sistema de Consulta Integrada</h1>
-                <p>Consulte informações de pessoas físicas e jurídicas</p>
-            </div>
+            <h1>Sistema de Consulta Integrada - Debug Mode</h1>
+            <p>Versão simplificada para validar o backend e visualizar JSON bruto</p>
             
             <div class="search-section">
-                <div class="search-tabs">
+                <h2>Buscar Dados</h2>
+                
+                <div class="tabs">
                     <button 
                         class="tab-button" 
                         :class="{ active: searchType === 'person' }"
@@ -209,7 +148,7 @@
                 <div class="search-form">
                     <input 
                         v-model="searchQuery" 
-                        :placeholder="searchType === 'person' ? 'Digite o CPF ou nome da pessoa' : 'Digite o CNPJ da empresa'"
+                        :placeholder="searchType === 'person' ? 'Digite CPF (ex: 12345678901) ou Nome' : 'Digite CNPJ (ex: 12345678000195)'"
                         class="search-input"
                         @keyup.enter="search"
                     />
@@ -221,124 +160,50 @@
                         {{ loading ? 'Buscando...' : 'Buscar' }}
                     </button>
                 </div>
-            </div>
-            
-            <div v-if="error" class="error">
-                {{ error }}
-            </div>
-            
-            <div v-if="loading" class="loading">
-                Carregando...
-            </div>
-            
-            <div v-if="results && !loading" class="results">
-                <!-- Lista de pessoas (busca por nome) -->
-                <div v-if="results.type === 'people_list'">
-                    <h2>Pessoas encontradas ({{ results.people.length }})</h2>
-                    <div class="people-list">
-                        <div 
-                            v-for="person in results.people" 
-                            :key="person.cpf"
-                            class="person-item"
-                            @click="selectPerson(person.cpf)"
-                        >
-                            <strong>{{ person.nome }}</strong><br>
-                            <small>CPF: {{ formatCPF(person.cpf) }}</small>
-                        </div>
-                    </div>
-                </div>
                 
-                <!-- Detalhes da pessoa e empresas -->
-                <div v-if="results.type === 'person' || selectedPersonData">
-                    <div class="person-card">
-                        <h3>Dados da Pessoa</h3>
-                        <div class="person-info">
-                            <div class="info-item">
-                                <div class="info-label">Nome:</div>
-                                <div>{{ getPersonData().nome }}</div>
-                            </div>
-                            <div class="info-item">
-                                <div class="info-label">CPF:</div>
-                                <div>{{ formatCPF(getPersonData().cpf) }}</div>
-                            </div>
-                            <div class="info-item" v-if="getPersonData().sexo">
-                                <div class="info-label">Sexo:</div>
-                                <div>{{ getPersonData().sexo }}</div>
-                            </div>
-                            <div class="info-item" v-if="getPersonData().data_nascimento">
-                                <div class="info-label">Data de Nascimento:</div>
-                                <div>{{ formatDate(getPersonData().data_nascimento) }}</div>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <h2 class="section-title">Empresas Associadas ({{ getCompanies().length }})</h2>
-                    <div class="companies-grid">
-                        <div v-for="company in getCompanies()" :key="company.cnpj" class="company-card">
-                            <h3>{{ company.razao_social }}</h3>
-                            <div class="company-info">
-                                <div class="info-item">
-                                    <div class="info-label">CNPJ:</div>
-                                    <div>{{ formatCNPJ(company.cnpj) }}</div>
-                                </div>
-                                <div class="info-item" v-if="company.nome_fantasia">
-                                    <div class="info-label">Nome Fantasia:</div>
-                                    <div>{{ company.nome_fantasia }}</div>
-                                </div>
-                                <div class="info-item" v-if="company.situacao">
-                                    <div class="info-label">Situação:</div>
-                                    <div>{{ company.situacao }}</div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
+                <div v-if="lastEndpoint" class="endpoint-info">
+                    <strong>Último endpoint chamado:</strong> {{ lastEndpoint }}
                 </div>
-                
-                <!-- Detalhes da empresa e sócios -->
-                <div v-if="results.type === 'company'">
-                    <div class="company-card">
-                        <h3>Dados da Empresa</h3>
-                        <div class="company-info">
-                            <div class="info-item">
-                                <div class="info-label">CNPJ:</div>
-                                <div>{{ formatCNPJ(results.company.cnpj) }}</div>
-                            </div>
-                            <div class="info-item">
-                                <div class="info-label">Razão Social:</div>
-                                <div>{{ results.company.razao_social }}</div>
-                            </div>
-                            <div class="info-item" v-if="results.company.nome_fantasia">
-                                <div class="info-label">Nome Fantasia:</div>
-                                <div>{{ results.company.nome_fantasia }}</div>
-                            </div>
-                            <div class="info-item" v-if="results.company.situacao">
-                                <div class="info-label">Situação:</div>
-                                <div>{{ results.company.situacao }}</div>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <h2 class="section-title">Sócios ({{ results.partners.length }})</h2>
-                    <div class="partners-grid">
-                        <div v-for="partner in results.partners" :key="partner.cpf" class="person-card">
-                            <h3>{{ partner.nome }}</h3>
-                            <div class="person-info">
-                                <div class="info-item">
-                                    <div class="info-label">CPF:</div>
-                                    <div>{{ formatCPF(partner.cpf) }}</div>
-                                </div>
-                                <div class="info-item" v-if="partner.sexo">
-                                    <div class="info-label">Sexo:</div>
-                                    <div>{{ partner.sexo }}</div>
-                                </div>
-                                <div class="info-item" v-if="partner.data_nascimento">
-                                    <div class="info-label">Data de Nascimento:</div>
-                                    <div>{{ formatDate(partner.data_nascimento) }}</div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
+            </div>
+            
+            <!-- Status Messages -->
+            <div v-if="loading" class="status loading">
+                🔄 Carregando dados...
+            </div>
+            
+            <div v-if="error" class="status error">
+                ❌ {{ error }}
+            </div>
+            
+            <div v-if="success" class="status success">
+                ✅ {{ success }}
+            </div>
+            
+            <!-- Lista de pessoas (quando busca por nome retorna múltiplas pessoas) -->
+            <div v-if="results && results.type === 'people_list'" class="people-list">
+                <h2>Pessoas Encontradas ({{ results.people.length }})</h2>
+                <p>Clique em uma pessoa para ver suas empresas:</p>
+                <div 
+                    v-for="person in results.people" 
+                    :key="person.cpf"
+                    class="person-item"
+                    @click="selectPerson(person.cpf)"
+                >
+                    <strong>{{ person.nome }}</strong><br>
+                    <small>CPF: {{ person.cpf }}</small>
                 </div>
+            </div>
+            
+            <!-- JSON Output -->
+            <div v-if="jsonOutput" class="json-output">
+                <h3>JSON Retornado:</h3>
+                {{ jsonOutput }}
+            </div>
+            
+            <!-- Raw Request/Response Info -->
+            <div v-if="requestInfo" class="json-output">
+                <h3>Informações da Requisição:</h3>
+                {{ requestInfo }}
             </div>
         </div>
     </div>
@@ -353,35 +218,75 @@
                     searchQuery: '',
                     loading: false,
                     error: null,
+                    success: null,
                     results: null,
-                    selectedPersonData: null
+                    jsonOutput: null,
+                    requestInfo: null,
+                    lastEndpoint: null
                 };
             },
             methods: {
+                clearMessages() {
+                    this.error = null;
+                    this.success = null;
+                    this.jsonOutput = null;
+                    this.requestInfo = null;
+                },
+                
                 async search() {
                     if (!this.searchQuery.trim()) return;
                     
                     this.loading = true;
-                    this.error = null;
+                    this.clearMessages();
                     this.results = null;
-                    this.selectedPersonData = null;
                     
                     try {
                         let response;
+                        let endpoint;
+                        let requestData;
                         
                         if (this.searchType === 'person') {
-                            response = await axios.post('http://localhost:5000/api/search_person', {
-                                query: this.searchQuery
-                            });
+                            endpoint = 'http://localhost:5000/api/search_person';
+                            requestData = { query: this.searchQuery };
                         } else {
-                            response = await axios.post('http://localhost:5000/api/search_company', {
-                                cnpj: this.searchQuery
-                            });
+                            endpoint = 'http://localhost:5000/api/search_company';
+                            requestData = { cnpj: this.searchQuery };
                         }
                         
+                        this.lastEndpoint = endpoint;
+                        
+                        // Fazer a requisição
+                        response = await axios.post(endpoint, requestData);
+                        
+                        // Mostrar informações da requisição
+                        this.requestInfo = JSON.stringify({
+                            url: endpoint,
+                            method: 'POST',
+                            requestData: requestData,
+                            status: response.status,
+                            statusText: response.statusText
+                        }, null, 2);
+                        
+                        // Mostrar JSON bruto
+                        this.jsonOutput = JSON.stringify(response.data, null, 2);
+                        
+                        // Armazenar resultados
                         this.results = response.data;
+                        
+                        this.success = `Dados carregados com sucesso! Tipo: ${response.data.type}`;
+                        
                     } catch (err) {
-                        this.error = err.response?.data?.error || 'Erro ao buscar dados';
+                        this.error = err.response?.data?.error || `Erro ao buscar dados: ${err.message}`;
+                        
+                        // Mostrar informações do erro
+                        this.requestInfo = JSON.stringify({
+                            url: this.lastEndpoint,
+                            method: 'POST',
+                            requestData: this.searchType === 'person' ? { query: this.searchQuery } : { cnpj: this.searchQuery },
+                            error: err.response?.data || err.message,
+                            status: err.response?.status || 'Network Error'
+                        }, null, 2);
+                        
                     } finally {
                         this.loading = false;
                     }
@@ -389,48 +294,44 @@
                 
                 async selectPerson(cpf) {
                     this.loading = true;
-                    this.error = null;
+                    this.clearMessages();
                     
                     try {
-                        const response = await axios.post('http://localhost:5000/api/person_companies', {
-                            cpf: cpf
-                        });
+                        const endpoint = 'http://localhost:5000/api/person_companies';
+                        const requestData = { cpf: cpf };
                         
-                        this.selectedPersonData = response.data;
+                        this.lastEndpoint = endpoint;
+                        
+                        const response = await axios.post(endpoint, requestData);
+                        
+                        // Mostrar informações da requisição
+                        this.requestInfo = JSON.stringify({
+                            url: endpoint,
+                            method: 'POST',
+                            requestData: requestData,
+                            status: response.status,
+                            statusText: response.statusText
+                        }, null, 2);
+                        
+                        // Mostrar JSON bruto
+                        this.jsonOutput = JSON.stringify(response.data, null, 2);
+                        
+                        this.success = `Dados da pessoa e empresas carregados com sucesso!`;
+                        
                     } catch (err) {
-                        this.error = err.response?.data?.error || 'Erro ao buscar dados da pessoa';
+                        this.error = err.response?.data?.error || `Erro ao buscar dados da pessoa: ${err.message}`;
+                        
+                        this.requestInfo = JSON.stringify({
+                            url: 'http://localhost:5000/api/person_companies',
+                            method: 'POST',
+                            requestData: { cpf: cpf },
+                            error: err.response?.data || err.message,
+                            status: err.response?.status || 'Network Error'
+                        }, null, 2);
+                        
                     } finally {
                         this.loading = false;
                     }
-                },
-                
-                getPersonData() {
-                    if (this.selectedPersonData) {
-                        return this.selectedPersonData.person;
-                    }
-                    return this.results?.person || {};
-                },
-                
-                getCompanies() {
-                    if (this.selectedPersonData) {
-                        return this.selectedPersonData.companies || [];
-                    }
-                    return this.results?.companies || [];
-                },
-                
-                formatCPF(cpf) {
-                    if (!cpf) return '';
-                    return cpf.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4');
-                },
-                
-                formatCNPJ(cnpj) {
-                    if (!cnpj) return '';
-                    return cnpj.replace(/(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})/, '$1.$2.$3/$4-$5');
-                },
-                
-                formatDate(date) {
-                    if (!date) return '';
-                    return new Date(date).toLocaleDateString('pt-BR');
                 }
             }
         }).mount('#app');
