@@ -13,7 +13,7 @@ Sistema web para consulta de informações de pessoas físicas e jurídicas, int
 ## Tecnologias Utilizadas
 
 - **Backend**: Python + Flask
-- **Frontend**: Vue.js 3 + HTML/CSS/JavaScript
+- **Frontend**: Vue.js 3 + Axios
 - **Banco de dados**: SQLite (basecpf.db e cnpj.db)
 - **Validação**: Validação nativa de CPF/CNPJ
 - **CORS**: Habilitado para comunicação entre frontend e backend
@@ -21,49 +21,37 @@ Sistema web para consulta de informações de pessoas físicas e jurídicas, int
 ## Pré-requisitos
 
 - Python 3.7+
-- Navegador web moderno (Chrome, Firefox, Safari, Edge)
+- Node.js 14+
 - Bancos de dados SQLite: `basecpf.db` e `cnpj.db`
 
-## Instalação
+## Instalação e Execução
 
-1. **Clone ou baixe o projeto**
-   ```bash
-   # Se estiver usando git
-   git clone [url-do-repositorio]
-   cd sistema-consulta
-   ```
-
-2. **Instale as dependências Python**
-   ```bash
-   pip install -r requirements.txt
-   ```
-
-3. **Verifique se os bancos de dados estão presentes**
-   - Certifique-se que os arquivos `basecpf.db` e `cnpj.db` estão na raiz do projeto
-   - Estes arquivos devem ser fornecidos pelo professor
-
-## Execução
-
-### 1. Iniciar o Backend
+### 1. Backend (Flask)
 
 ```bash
+# Instalar dependências Python
+pip install -r requirements.txt
+
+# Executar o backend
 python app.py
 ```
 
 O backend será iniciado em `http://localhost:5000`
 
-### 2. Abrir o Frontend
+### 2. Frontend (Vue.js)
 
-Simplesmente abra o arquivo `index.html` em seu navegador web. Você pode:
+```bash
+# Entrar na pasta do frontend
+cd frontend
 
-- Dar duplo clique no arquivo `index.html`
-- Ou usar um servidor web simples (opcional):
-  ```bash
-  # Python 3
-  python -m http.server 8080
-  
-  # Então acesse: http://localhost:8080
-  ```
+# Instalar dependências
+npm install
+
+# Executar em modo desenvolvimento
+npm run serve
+```
+
+O frontend será iniciado em `http://localhost:8080`
 
 ## Uso da Aplicação
 
@@ -82,86 +70,28 @@ Simplesmente abra o arquivo `index.html` em seu navegador web. Você pode:
 3. Clique em "Buscar"
 4. Será exibida a empresa encontrada e todos os seus sócios
 
-## Estrutura dos Bancos de Dados
-
-### basecpf.db
-- **Tabela**: `cpf`
-- **Campos**: cpf, nome, sexo, data_nascimento, etc.
-
-### cnpj.db
-- **Tabela**: `empresas` - dados das empresas
-- **Tabela**: `socios` - relacionamento entre empresas e sócios
-- **Campos**: cnpj, razao_social, nome_fantasia, situacao, etc.
-
-## Endpoints da API
-
-### GET /api/health
-Verifica se a API está funcionando.
-
-### POST /api/search_person
-Busca pessoa por CPF ou nome.
-```json
-{
-    "query": "12345678901" // CPF ou nome
-}
-```
-
-### POST /api/search_company
-Busca empresa por CNPJ.
-```json
-{
-    "cnpj": "12345678000195"
-}
-```
-
-### POST /api/person_companies
-Busca empresas de uma pessoa específica.
-```json
-{
-    "cpf": "12345678901"
-}
-```
-
-## Estrutura de Arquivos
+## Estrutura do Projeto
 
 ```
-projeto/
-├── app.py              # Backend Flask
-├── index.html          # Frontend Vue.js
-├── requirements.txt    # Dependências Python
-├── README.md          # Este arquivo
-├── basecpf.db         # Banco de dados CPF
-└── cnpj.db            # Banco de dados CNPJ
+├── app.py              # Servidor Flask principal
+├── backend/            # Configurações e acesso aos bancos
+│   ├── config.py       # Configurações da aplicação
+│   └── databases.py    # Funções de acesso ao banco
+├── frontend/           # Aplicação Vue.js
+│   ├── src/
+│   │   ├── components/ # Componentes Vue
+│   │   └── utils/      # Validadores CPF/CNPJ (validatores.js)
+│   └── public/         # Arquivos públicos (index.html)
+└── requirements.txt    # Dependências Python
 ```
 
-## Tratamento de Erros
+## Produção
 
-- **CPF/CNPJ inválido**: Validação automática no frontend e backend
-- **Dados não encontrados**: Mensagem de erro clara
-- **Problemas de conexão**: Mensagens de erro informativas
-- **Validação de entrada**: Campos obrigatórios e formato correto
+Para produção, faça o build do frontend:
 
-## Desenvolvimento
+```bash
+cd frontend
+npm run build
+```
 
-### Modificações no Backend
-
-Para adicionar novos endpoints ou modificar a lógica de busca, edite o arquivo `app.py`.
-
-### Modificações no Frontend
-
-Para alterar a interface, edite o arquivo `index.html`. O Vue.js está incluído via CDN.
-
-## Solução de Problemas
-
-1. **"Erro de CORS"**: Certifique-se que o backend está rodando em `http://localhost:5000`
-2. **"Banco de dados não encontrado"**: Verifique se os arquivos `.db` estão na raiz do projeto
-3. **"Módulo não encontrado"**: Execute `pip install -r requirements.txt`
-4. **"Porta em uso"**: Altere a porta no arquivo `app.py` se necessário
-
-## Notas Técnicas
-
-- O sistema usa múltiplas threads para consultas aos bancos de dados
-- A validação de CPF e CNPJ segue os algoritmos oficiais
-- O frontend é uma Single Page Application (SPA) simples
-- Todas as consultas são feitas via AJAX/API REST
-- Os dados são retornados em formato JSON estruturado
+Os arquivos de produção ficarão em `frontend/dist/`
