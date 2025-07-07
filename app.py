@@ -65,19 +65,51 @@ def search_companies_by_cpf(cpf):
     """Busca empresas por CPF do sócio"""
     with get_db('cnpj.db') as conn:
         cursor = conn.cursor()
+
+        # Extrair os 6 dígitos do meio do CPF (posições 4-9)
+        cpf_middle = cpf[3:9] if len(cpf) == 11 else cpf
+
+        # Buscar pessoa no banco de CPF para obter o nome
+        pessoa = None
+        with get_db('basecpf.db') as conn_cpf:
+            cursor_cpf = conn_cpf.cursor()
+            cursor_cpf.execute("SELECT nome FROM cpf WHERE cpf = ?", (cpf,))
+            result = cursor_cpf.fetchone()
+            pessoa = dict(result) if result else None
+
+        # Query para buscar por CPF parcial e/ou nome
         query = """
-        SELECT DISTINCT 
+        SELECT DISTINCT
             e.cnpj_basico, e.razao_social, e.natureza_juridica, e.porte_empresa, e.capital_social,
             est.cnpj, est.nome_fantasia, est.situacao_cadastral, est.data_inicio_atividades,
             est.logradouro, est.numero, est.bairro, est.cep, est.uf, est.municipio,
-            s.qualificacao_socio, s.data_entrada_sociedade
+            s.qualificacao_socio, s.data_entrada_sociedade, s.cnpj_cpf_socio, s.nome_socio
         FROM socios s
         JOIN empresas e ON s.cnpj_basico = e.cnpj_basico
         LEFT JOIN estabelecimento est ON e.cnpj_basico = est.cnpj_basico AND est.matriz_filial = '1'
-        WHERE s.cnpj_cpf_socio = ?
+        WHERE s.cnpj_cpf_socio LIKE ? OR (? IS NOT NULL AND s.nome_socio LIKE ?)
         """
-        cursor.execute(query, (cpf,))
-        return [dict(row) for row in cursor.fetchall()]
+
+        # Parâmetros da query
+        cpf_pattern = f"%{cpf_middle}%"
+        nome_pattern = f"%{pessoa['nome']}%" if pessoa else None
+
+        cursor.execute(query, (cpf_pattern, nome_pattern, nome_pattern))
+        results = cursor.fetchall()
+
+        # Filtrar resultados para garantir que o match de CPF seja mais preciso
+        filtered_results = []
+        for row in results:
+            row_dict = dict(row)
+
+            # Verificar se o CPF parcial contém os dígitos do meio
+            if row_dict['cnpj_cpf_socio'] and cpf_middle in row_dict['cnpj_cpf_socio']:
+                filtered_results.append(row_dict)
+            # Ou se o nome bate (caso exista)
+            elif pessoa and row_dict['nome_socio'] and pessoa['nome'].upper() in row_dict['nome_socio'].upper():
+                filtered_results.append(row_dict)
+
+        return filtered_results
 
 def search_company_by_cnpj(cnpj):
     """Busca empresa por CNPJ"""
