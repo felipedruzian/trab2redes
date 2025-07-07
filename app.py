@@ -129,12 +129,11 @@ def search_company_by_cnpj(cnpj):
         return dict(result) if result else None
 
 def search_partners_by_cnpj(cnpj):
-    """Busca sócios por CNPJ da empresa"""
+    """Busca sócios por CNPJ da empresa - retorna apenas dados básicos"""
     partners = []
 
-    with get_db('cnpj.db') as conn_cnpj, get_db('basecpf.db') as conn_cpf:
+    with get_db('cnpj.db') as conn_cnpj:
         cursor_cnpj = conn_cnpj.cursor()
-        cursor_cpf = conn_cpf.cursor()
 
         query = """
         SELECT cnpj_cpf_socio, nome_socio, qualificacao_socio, data_entrada_sociedade, faixa_etaria
@@ -144,23 +143,80 @@ def search_partners_by_cnpj(cnpj):
 
         for row in cursor_cnpj.fetchall():
             partner = dict(row)
-            cpf_socio = partner['cnpj_cpf_socio']
+            cnpj_cpf_socio = partner['cnpj_cpf_socio']
+            nome_socio = partner['nome_socio']
 
-            # Se for CPF, buscar dados completos
-            if cpf_socio and len(re.sub(r'\D', '', cpf_socio)) == 11:
-                cursor_cpf.execute("SELECT nome, sexo, nasc FROM cpf WHERE cpf = ?", (cpf_socio,))
-                person_data = cursor_cpf.fetchone()
-                if person_data:
-                    person_dict = dict(person_data)
-                    # Renomear para ficar mais claro
-                    partner['cpf'] = cpf_socio
-                    partner['nome_completo'] = person_dict.get('nome')
-                    partner['sexo'] = person_dict.get('sexo')
-                    partner['data_nascimento'] = person_dict.get('nasc')
+            # Buscar dados completos no basecpf.db
+            partner_details = search_partner_details(cnpj_cpf_socio, nome_socio)
+
+            if partner_details:
+                # Adicionar dados completos ao partner
+                partner['cpf'] = partner_details['cpf']
+                partner['nome_completo'] = partner_details['nome']
+                partner['sexo'] = partner_details['sexo']
+                partner['data_nascimento'] = partner_details['nasc']
 
             partners.append(partner)
 
     return partners
+
+def search_partner_details(cnpj_cpf_socio, nome_socio):
+    """Busca dados completos de um sócio específico usando CPF parcial e nome"""
+    with get_db('basecpf.db') as conn_cpf:
+        cursor_cpf = conn_cpf.cursor()
+
+        # Se o CPF tem asteriscos, extrair os dígitos do meio
+        if '*' in cnpj_cpf_socio:
+            # Remover asteriscos para obter apenas os dígitos
+            cpf_digits = re.sub(r'[*]', '', cnpj_cpf_socio)
+
+            # Buscar pessoas que tenham esses dígitos no CPF e nome similar
+            query = """
+            SELECT cpf, nome, sexo, nasc
+            FROM cpf
+            WHERE cpf LIKE ? AND nome LIKE ?
+            LIMIT 10
+            """
+            cursor_cpf.execute(query, (f"%{cpf_digits}%", f"%{nome_socio}%"))
+
+        else:
+            # CPF completo - buscar diretamente
+            cpf_clean = re.sub(r'\D', '', cnpj_cpf_socio)
+            query = """
+            SELECT cpf, nome, sexo, nasc
+            FROM cpf
+            WHERE cpf = ?
+            """
+            cursor_cpf.execute(query, (cpf_clean,))
+
+        results = cursor_cpf.fetchall()
+
+        # Se houver múltiplos resultados, tentar encontrar o melhor match por nome
+        if len(results) > 1:
+            best_match = None
+            best_score = 0
+
+            for row in results:
+                person = dict(row)
+                # Calcular similaridade de nome (simples)
+                nome_person = person['nome'].upper()
+                nome_socio_upper = nome_socio.upper()
+
+                # Contar palavras em comum
+                palavras_person = set(nome_person.split())
+                palavras_socio = set(nome_socio_upper.split())
+                score = len(palavras_person & palavras_socio)
+
+                if score > best_score:
+                    best_score = score
+                    best_match = person
+
+            return best_match
+
+        elif len(results) == 1:
+            return dict(results[0])
+
+        return None
 
 # Rotas
 @app.route('/')
@@ -231,6 +287,8 @@ def get_person_companies():
         'type': 'person_companies',
         'data': companies
     })
+
+
 
 @app.route('/api/health', methods=['GET'])
 @handle_errors
