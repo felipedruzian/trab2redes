@@ -77,33 +77,31 @@ def get_db_connection(db_name):
         logger.error(f"Erro ao conectar com o banco {db_name}: {e}")
         raise
 
-def search_person_by_cpf(cpf):
-    """Busca pessoa por CPF no banco basecpf.db"""
+def search_person(query):
+    """Busca pessoa por CPF ou nome no banco basecpf.db"""
     conn = None
     try:
         conn = get_db_connection('basecpf.db')
         cursor = conn.cursor()
-        cursor.execute("SELECT * FROM cpf WHERE cpf = ?", (cpf,))
-        person = cursor.fetchone()
-        return dict(person) if person else None
+        
+        # Verificar se é CPF ou nome
+        query_clean = re.sub(r'\D', '', query)
+        
+        if len(query_clean) == 11 and validate_cpf(query_clean):
+            # Busca por CPF
+            cursor.execute("SELECT * FROM cpf WHERE cpf = ?", (query_clean,))
+            person = cursor.fetchone()
+            return [dict(person)] if person else []
+        else:
+            
+            
+            # Fallback para busca com LIKE
+            cursor.execute("SELECT * FROM cpf WHERE nome LIKE ? LIMIT 100", (f"%{query}%",))
+            people = cursor.fetchall()
+            return [dict(person) for person in people]
+            
     except Exception as e:
-        logger.error(f"Erro ao buscar por CPF {cpf}: {e}")
-        return None
-    finally:
-        if conn:
-            conn.close()
-
-def search_person_by_name(name):
-    """Busca pessoas por nome no banco basecpf.db"""
-    conn = None
-    try:
-        conn = get_db_connection('basecpf.db')
-        cursor = conn.cursor()
-        cursor.execute("SELECT * FROM cpf WHERE nome LIKE ? LIMIT 100", (f"%{name}%",))
-        people = cursor.fetchall()
-        return [dict(person) for person in people]
-    except Exception as e:
-        logger.error(f"Erro ao buscar por nome {name}: {e}")
+        logger.error(f"Erro ao buscar pessoa {query}: {e}")
         return []
     finally:
         if conn:
@@ -116,20 +114,43 @@ def search_companies_by_cpf(cpf):
         conn = get_db_connection('cnpj.db')
         cursor = conn.cursor()
         
-        # Busca CNPJs dos sócios
-        cursor.execute("SELECT DISTINCT cnpj FROM socios WHERE cpf = ?", (cpf,))
-        cnpjs = cursor.fetchall()
+        # Busca empresas onde a pessoa é sócia
+        query = """
+        SELECT DISTINCT 
+            e.cnpj_basico,
+            e.razao_social,
+            e.natureza_juridica,
+            e.qualificacao_responsavel,
+            e.porte_empresa,
+            e.capital_social,
+            est.cnpj,
+            est.nome_fantasia,
+            est.situacao_cadastral,
+            est.data_situacao_cadastral,
+            est.data_inicio_atividades,
+            est.cnae_fiscal,
+            est.logradouro,
+            est.numero,
+            est.complemento,
+            est.bairro,
+            est.cep,
+            est.uf,
+            est.municipio,
+            est.telefone1,
+            est.correio_eletronico,
+            s.qualificacao_socio,
+            s.data_entrada_sociedade
+        FROM socios s
+        JOIN empresas e ON s.cnpj_basico = e.cnpj_basico
+        LEFT JOIN estabelecimento est ON e.cnpj_basico = est.cnpj_basico AND est.matriz_filial = '1'
+        WHERE s.cnpj_cpf_socio = ?
+        """
         
-        companies = []
-        for cnpj_row in cnpjs:
-            cnpj = cnpj_row['cnpj']
-            # Busca dados da empresa
-            cursor.execute("SELECT * FROM empresas WHERE cnpj = ?", (cnpj,))
-            company = cursor.fetchone()
-            if company:
-                companies.append(dict(company))
+        cursor.execute(query, (cpf,))
+        companies = cursor.fetchall()
         
-        return companies
+        return [dict(company) for company in companies]
+        
     except Exception as e:
         logger.error(f"Erro ao buscar empresas por CPF {cpf}: {e}")
         return []
@@ -143,9 +164,40 @@ def search_company_by_cnpj(cnpj):
     try:
         conn = get_db_connection('cnpj.db')
         cursor = conn.cursor()
-        cursor.execute("SELECT * FROM empresas WHERE cnpj = ?", (cnpj,))
+        
+        # Busca dados da empresa com estabelecimento
+        query = """
+        SELECT 
+            e.cnpj_basico,
+            e.razao_social,
+            e.natureza_juridica,
+            e.qualificacao_responsavel,
+            e.porte_empresa,
+            e.capital_social,
+            est.cnpj,
+            est.nome_fantasia,
+            est.situacao_cadastral,
+            est.data_situacao_cadastral,
+            est.data_inicio_atividades,
+            est.cnae_fiscal,
+            est.logradouro,
+            est.numero,
+            est.complemento,
+            est.bairro,
+            est.cep,
+            est.uf,
+            est.municipio,
+            est.telefone1,
+            est.correio_eletronico
+        FROM empresas e
+        JOIN estabelecimento est ON e.cnpj_basico = est.cnpj_basico
+        WHERE est.cnpj = ?
+        """
+        
+        cursor.execute(query, (cnpj,))
         company = cursor.fetchone()
         return dict(company) if company else None
+        
     except Exception as e:
         logger.error(f"Erro ao buscar empresa por CNPJ {cnpj}: {e}")
         return None
@@ -164,20 +216,42 @@ def search_partners_by_cnpj(cnpj):
         cursor_cnpj = conn_cnpj.cursor()
         cursor_cpf = conn_cpf.cursor()
         
-        # Busca CPFs dos sócios
-        cursor_cnpj.execute("SELECT cpf FROM socios WHERE cnpj = ?", (cnpj,))
-        cpfs = cursor_cnpj.fetchall()
+        # Busca sócios da empresa
+        query = """
+        SELECT DISTINCT 
+            s.cnpj_cpf_socio,
+            s.nome_socio,
+            s.qualificacao_socio,
+            s.data_entrada_sociedade,
+            s.faixa_etaria,
+            s.identificador_de_socio,
+            s.representante_legal,
+            s.nome_representante,
+            s.qualificacao_representante_legal
+        FROM socios s
+        WHERE s.cnpj = ?
+        """
+        
+        cursor_cnpj.execute(query, (cnpj,))
+        partners_data = cursor_cnpj.fetchall()
         
         partners = []
-        for cpf_row in cpfs:
-            cpf = cpf_row['cpf']
-            # Busca dados da pessoa
-            cursor_cpf.execute("SELECT * FROM cpf WHERE cpf = ?", (cpf,))
-            person = cursor_cpf.fetchone()
-            if person:
-                partners.append(dict(person))
+        for partner_row in partners_data:
+            partner = dict(partner_row)
+            
+            # Se o cnpj_cpf_socio for um CPF válido, buscar dados na tabela cpf
+            cpf_socio = partner['cnpj_cpf_socio']
+            if cpf_socio and len(re.sub(r'\D', '', cpf_socio)) == 11:
+                cursor_cpf.execute("SELECT nome, sexo, nasc FROM cpf WHERE cpf = ?", (cpf_socio,))
+                person_data = cursor_cpf.fetchone()
+                if person_data:
+
+                    partner.update(dict(person_data))
+            
+            partners.append(partner)
         
         return partners
+        
     except Exception as e:
         logger.error(f"Erro ao buscar sócios por CNPJ {cnpj}: {e}")
         return []
@@ -198,97 +272,100 @@ def index():
         return jsonify({'error': 'Arquivo index.html não encontrado'}), 404
 
 @app.route('/api/search_person', methods=['POST'])
-def search_person():
+def search_person_endpoint():
     """Endpoint para buscar pessoas por CPF ou nome"""
     try:
-        data = request.json
-        query = data.get('query', '').strip()
+        data = request.get_json()
+        if not data or 'query' not in data:
+            return jsonify({'error': 'Parâmetro query é obrigatório'}), 400
         
+        query = data['query'].strip()
         if not query:
-            return jsonify({'error': 'Query é obrigatório'}), 400
+            return jsonify({'error': 'Query não pode estar vazia'}), 400
         
-        # Verifica se é CPF ou nome
-        if re.match(r'^\d{11}$', re.sub(r'\D', '', query)):
-            # É CPF
-            cpf = re.sub(r'\D', '', query)
-            if not validate_cpf(cpf):
-                return jsonify({'error': 'CPF inválido'}), 400
-            
-            person = search_person_by_cpf(cpf)
-            if person:
-                companies = search_companies_by_cpf(cpf)
-                return jsonify({
-                    'type': 'person',
-                    'person': person,
-                    'companies': companies
-                })
-            else:
-                return jsonify({'error': 'Pessoa não encontrada'}), 404
-        else:
-            # É nome
-            people = search_person_by_name(query)
-            return jsonify({
-                'type': 'people_list',
-                'people': people
-            })
-    
+        # Buscar pessoas (apenas pessoas, sem empresas)
+        people = search_person(query)
+        
+        if not people:
+            return jsonify({'message': 'Nenhuma pessoa encontrada', 'data': []}), 200
+        
+        return jsonify({
+            'message': f'Encontradas {len(people)} pessoa(s)',
+            'type': 'people_list',
+            'people': people
+        }), 200
+        
     except Exception as e:
-        logger.error(f"Erro no endpoint search_person: {e}")
+        logger.error(f"Erro na busca por pessoa: {e}")
         return jsonify({'error': 'Erro interno do servidor'}), 500
 
 @app.route('/api/search_company', methods=['POST'])
-def search_company():
+def search_company_endpoint():
     """Endpoint para buscar empresa por CNPJ"""
     try:
-        data = request.json
-        cnpj = data.get('cnpj', '').strip()
+        data = request.get_json()
+        if not data or 'cnpj' not in data:
+            return jsonify({'error': 'Parâmetro cnpj é obrigatório'}), 400
         
+        cnpj = data['cnpj'].strip()
         if not cnpj:
-            return jsonify({'error': 'CNPJ é obrigatório'}), 400
+            return jsonify({'error': 'CNPJ não pode estar vazio'}), 400
         
-        cnpj = re.sub(r'\D', '', cnpj)
+        # Validar CNPJ
         if not validate_cnpj(cnpj):
             return jsonify({'error': 'CNPJ inválido'}), 400
         
-        company = search_company_by_cnpj(cnpj)
-        if company:
-            partners = search_partners_by_cnpj(cnpj)
-            return jsonify({
-                'type': 'company',
+        # Limpar CNPJ
+        cnpj_clean = re.sub(r'\D', '', cnpj)
+        
+        # Buscar empresa
+        company = search_company_by_cnpj(cnpj_clean)
+        
+        if not company:
+            return jsonify({'message': 'Empresa não encontrada', 'data': None}), 200
+        
+        # Buscar sócios da empresa
+        partners = search_partners_by_cnpj(cnpj_clean)
+        
+        return jsonify({
+            'message': 'Empresa encontrada',
+            'data': {
                 'company': company,
                 'partners': partners
-            })
-        else:
-            return jsonify({'error': 'Empresa não encontrada'}), 404
-    
+            }
+        }), 200
+        
     except Exception as e:
-        logger.error(f"Erro no endpoint search_company: {e}")
+        logger.error(f"Erro na busca por empresa: {e}")
         return jsonify({'error': 'Erro interno do servidor'}), 500
 
 @app.route('/api/person_companies', methods=['POST'])
 def get_person_companies():
     """Endpoint para buscar empresas de uma pessoa específica"""
     try:
-        data = request.json
-        cpf = data.get('cpf', '').strip()
+        data = request.get_json()
+        if not data or 'cpf' not in data:
+            return jsonify({'error': 'Parâmetro cpf é obrigatório'}), 400
         
+        cpf = data['cpf'].strip()
         if not cpf:
             return jsonify({'error': 'CPF é obrigatório'}), 400
         
-        cpf = re.sub(r'\D', '', cpf)
+        # Validar CPF
         if not validate_cpf(cpf):
             return jsonify({'error': 'CPF inválido'}), 400
         
-        person = search_person_by_cpf(cpf)
-        if person:
-            companies = search_companies_by_cpf(cpf)
-            return jsonify({
-                'person': person,
-                'companies': companies
-            })
-        else:
-            return jsonify({'error': 'Pessoa não encontrada'}), 404
-    
+        # Limpar CPF
+        cpf_clean = re.sub(r'\D', '', cpf)
+        
+        # Buscar empresas da pessoa
+        companies = search_companies_by_cpf(cpf_clean)
+        
+        return jsonify({
+            'message': f'Encontradas {len(companies)} empresa(s) para o CPF {cpf}',
+            'data': companies
+        }), 200
+        
     except Exception as e:
         logger.error(f"Erro no endpoint person_companies: {e}")
         return jsonify({'error': 'Erro interno do servidor'}), 500
@@ -296,14 +373,17 @@ def get_person_companies():
 @app.route('/api/health', methods=['GET'])
 def health_check():
     """Endpoint de health check"""
-    return jsonify({
-        'status': 'OK', 
-        'message': 'API funcionando corretamente',
-        'databases': {
-            'basecpf.db': 'disponível' if check_databases() else 'indisponível',
-            'cnpj.db': 'disponível' if check_databases() else 'indisponível'
-        }
-    })
+    try:
+        # Verificar conexão com os bancos
+        conn_cpf = get_db_connection('basecpf.db')
+        conn_cnpj = get_db_connection('cnpj.db')
+        conn_cpf.close()
+        conn_cnpj.close()
+        
+        return jsonify({'status': 'healthy', 'databases': 'connected'}), 200
+    except Exception as e:
+        logger.error(f"Erro no health check: {e}")
+        return jsonify({'status': 'unhealthy', 'error': str(e)}), 500
 
 @app.errorhandler(404)
 def not_found(error):
@@ -319,7 +399,7 @@ if __name__ == '__main__':
     logger.info(f"Servidor rodando em http://{API_CONFIG['host']}:{API_CONFIG['port']}")
     logger.info("Acesse http://localhost:5000 para usar a aplicação")
     app.run(
-        debug=API_CONFIG['debug'], 
         host=API_CONFIG['host'], 
-        port=API_CONFIG['port']
+        port=API_CONFIG['port'],
+        debug=API_CONFIG['debug']
     )
