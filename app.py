@@ -165,58 +165,21 @@ def search_partner_details(cnpj_cpf_socio, nome_socio):
     with get_db('basecpf.db') as conn_cpf:
         cursor_cpf = conn_cpf.cursor()
 
-        # Se o CPF tem asteriscos, extrair os dígitos do meio
-        if '*' in cnpj_cpf_socio:
-            # Remover asteriscos para obter apenas os dígitos
-            cpf_digits = re.sub(r'[*]', '', cnpj_cpf_socio)
+        # Extrair os dígitos do meio do CPF parcial (formato: ***456789**)
+        # Remove os 3 asteriscos do início e 2 do final
+        cpf_digits = cnpj_cpf_socio[3:-2] if len(cnpj_cpf_socio) >= 6 else cnpj_cpf_socio
 
-            # Buscar pessoas que tenham esses dígitos no CPF e nome similar
-            query = """
-            SELECT cpf, nome, sexo, nasc
-            FROM cpf
-            WHERE cpf LIKE ? AND nome LIKE ?
-            LIMIT 10
-            """
-            cursor_cpf.execute(query, (f"%{cpf_digits}%", f"%{nome_socio}%"))
+        # Buscar pessoa que tenha esses dígitos no CPF e nome exato
+        query = """
+        SELECT cpf, nome, sexo, nasc
+        FROM cpf
+        WHERE cpf LIKE ? AND nome = ?
+        LIMIT 1
+        """
+        cursor_cpf.execute(query, (f"%{cpf_digits}%", nome_socio))
 
-        else:
-            # CPF completo - buscar diretamente
-            cpf_clean = re.sub(r'\D', '', cnpj_cpf_socio)
-            query = """
-            SELECT cpf, nome, sexo, nasc
-            FROM cpf
-            WHERE cpf = ?
-            """
-            cursor_cpf.execute(query, (cpf_clean,))
-
-        results = cursor_cpf.fetchall()
-
-        # Se houver múltiplos resultados, tentar encontrar o melhor match por nome
-        if len(results) > 1:
-            best_match = None
-            best_score = 0
-
-            for row in results:
-                person = dict(row)
-                # Calcular similaridade de nome (simples)
-                nome_person = person['nome'].upper()
-                nome_socio_upper = nome_socio.upper()
-
-                # Contar palavras em comum
-                palavras_person = set(nome_person.split())
-                palavras_socio = set(nome_socio_upper.split())
-                score = len(palavras_person & palavras_socio)
-
-                if score > best_score:
-                    best_score = score
-                    best_match = person
-
-            return best_match
-
-        elif len(results) == 1:
-            return dict(results[0])
-
-        return None
+        result = cursor_cpf.fetchone()
+        return dict(result) if result else None
 
 # Rotas
 @app.route('/')
