@@ -127,30 +127,35 @@ def search_company_by_cnpj(cnpj):
 def search_partners_by_cnpj(cnpj):
     """Busca sócios por CNPJ da empresa"""
     partners = []
-    
+
     with get_db('cnpj.db') as conn_cnpj, get_db('basecpf.db') as conn_cpf:
         cursor_cnpj = conn_cnpj.cursor()
         cursor_cpf = conn_cpf.cursor()
-        
+
         query = """
         SELECT cnpj_cpf_socio, nome_socio, qualificacao_socio, data_entrada_sociedade, faixa_etaria
         FROM socios WHERE cnpj = ?
         """
         cursor_cnpj.execute(query, (cnpj,))
-        
+
         for row in cursor_cnpj.fetchall():
             partner = dict(row)
             cpf_socio = partner['cnpj_cpf_socio']
-            
+
             # Se for CPF, buscar dados completos
             if cpf_socio and len(re.sub(r'\D', '', cpf_socio)) == 11:
                 cursor_cpf.execute("SELECT nome, sexo, nasc FROM cpf WHERE cpf = ?", (cpf_socio,))
                 person_data = cursor_cpf.fetchone()
                 if person_data:
-                    partner.update(dict(person_data))
-            
+                    person_dict = dict(person_data)
+                    # Renomear para ficar mais claro
+                    partner['cpf'] = cpf_socio
+                    partner['nome_completo'] = person_dict.get('nome')
+                    partner['sexo'] = person_dict.get('sexo')
+                    partner['data_nascimento'] = person_dict.get('nasc')
+
             partners.append(partner)
-    
+
     return partners
 
 # Rotas
@@ -179,23 +184,31 @@ def search_person_endpoint():
 def search_company_endpoint():
     data = request.get_json()
     cnpj = data.get('cnpj', '').strip() if data else ''
-    
+
     if not cnpj:
         return jsonify({'error': 'CNPJ é obrigatório'}), 400
-    
+
     if not validate_document(cnpj, 'cnpj'):
         return jsonify({'error': 'CNPJ inválido'}), 400
-    
+
     cnpj_clean = re.sub(r'\D', '', cnpj)
     company = search_company_by_cnpj(cnpj_clean)
-    
+
     if not company:
-        return jsonify({'message': 'Empresa não encontrada', 'data': None})
-    
+        return jsonify({
+            'message': 'Empresa não encontrada',
+            'type': 'company_not_found',
+            'data': None
+        })
+
     partners = search_partners_by_cnpj(cnpj_clean)
     return jsonify({
         'message': 'Empresa encontrada',
-        'data': {'company': company, 'partners': partners}
+        'type': 'company_data',
+        'data': {
+            'company': company,
+            'partners': partners
+        }
     })
 
 @app.route('/api/person_companies', methods=['POST'])
@@ -203,18 +216,19 @@ def search_company_endpoint():
 def get_person_companies():
     data = request.get_json()
     cpf = data.get('cpf', '').strip() if data else ''
-    
+
     if not cpf:
         return jsonify({'error': 'CPF é obrigatório'}), 400
-    
+
     if not validate_document(cpf, 'cpf'):
         return jsonify({'error': 'CPF inválido'}), 400
-    
+
     cpf_clean = re.sub(r'\D', '', cpf)
     companies = search_companies_by_cpf(cpf_clean)
-    
+
     return jsonify({
         'message': f'Encontradas {len(companies)} empresa(s)',
+        'type': 'person_companies',
         'data': companies
     })
 

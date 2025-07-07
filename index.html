@@ -272,8 +272,17 @@
                         
                         // Armazenar resultados
                         this.results = response.data;
-                        
-                        this.success = `Dados carregados com sucesso! Tipo: ${response.data.type}`;
+
+                        // Mensagem de sucesso baseada no tipo
+                        if (response.data.type === 'people_list') {
+                            this.success = `Dados carregados com sucesso! Encontradas ${response.data.people.length} pessoa(s)`;
+                        } else if (response.data.type === 'company_data') {
+                            this.success = `Dados carregados com sucesso! Empresa encontrada com ${response.data.data.partners.length} sócio(s)`;
+                        } else if (response.data.type === 'company_not_found') {
+                            this.success = `Busca realizada com sucesso! ${response.data.message}`;
+                        } else {
+                            this.success = `Dados carregados com sucesso! Tipo: ${response.data.type}`;
+                        }
                         
                     } catch (err) {
                         this.error = err.response?.data?.error || `Erro ao buscar dados: ${err.message}`;
@@ -295,15 +304,15 @@
                 async selectPerson(cpf) {
                     this.loading = true;
                     this.clearMessages();
-                    
+
                     try {
                         const endpoint = 'http://localhost:5000/api/person_companies';
                         const requestData = { cpf: cpf };
-                        
+
                         this.lastEndpoint = endpoint;
-                        
+
                         const response = await axios.post(endpoint, requestData);
-                        
+
                         // Mostrar informações da requisição
                         this.requestInfo = JSON.stringify({
                             url: endpoint,
@@ -312,15 +321,20 @@
                             status: response.status,
                             statusText: response.statusText
                         }, null, 2);
-                        
+
                         // Mostrar JSON bruto
                         this.jsonOutput = JSON.stringify(response.data, null, 2);
-                        
-                        this.success = `Dados da pessoa e empresas carregados com sucesso!`;
-                        
+
+                        // Mensagem de sucesso baseada no tipo
+                        if (response.data.type === 'person_companies') {
+                            this.success = `Dados da pessoa e empresas carregados com sucesso! Encontradas ${response.data.data.length} empresa(s)`;
+                        } else {
+                            this.success = `Dados da pessoa e empresas carregados com sucesso!`;
+                        }
+
                     } catch (err) {
                         this.error = err.response?.data?.error || `Erro ao buscar dados da pessoa: ${err.message}`;
-                        
+
                         this.requestInfo = JSON.stringify({
                             url: 'http://localhost:5000/api/person_companies',
                             method: 'POST',
@@ -328,7 +342,7 @@
                             error: err.response?.data || err.message,
                             status: err.response?.status || 'Network Error'
                         }, null, 2);
-                        
+
                     } finally {
                         this.loading = false;
                     }
