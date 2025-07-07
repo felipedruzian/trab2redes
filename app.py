@@ -3,50 +3,20 @@ from flask_cors import CORS
 import sqlite3
 import re
 import logging
+from concurrent.futures import ThreadPoolExecutor
 from contextlib import contextmanager
 from functools import wraps
-from concurrent.futures import ThreadPoolExecutor
-from config import check_databases, API_CONFIG, CORS_CONFIG, THREAD_CONFIG, LOGGING_CONFIG
+from config import DATABASE_CONFIG, API_CONFIG, CORS_CONFIG, THREAD_CONFIG, LOGGING_CONFIG
 
-# Configuração
-logging.basicConfig(level=getattr(logging, LOGGING_CONFIG['level']), format=LOGGING_CONFIG['format'])
+# Configurar logging
+logging.basicConfig(**LOGGING_CONFIG)
 logger = logging.getLogger(__name__)
 
 app = Flask(__name__)
-CORS(app, origins=CORS_CONFIG['origins'])
+CORS(app, **CORS_CONFIG)
 executor = ThreadPoolExecutor(max_workers=THREAD_CONFIG['max_workers'])
 
-if not check_databases():
-    logger.warning("Alguns bancos de dados não foram encontrados.")
-
-# Utilitários
-def validate_document(doc, doc_type):
-    """Valida CPF ou CNPJ"""
-    doc = re.sub(r'\D', '', doc)
-
-    if doc_type == 'cpf':
-        if len(doc) != 11 or doc == doc[0] * 11:
-            return False
-        # Validação do primeiro dígito
-        sum1 = sum(int(doc[i]) * (10 - i) for i in range(9))
-        digit1 = ((sum1 * 10) % 11) % 10
-        # Validação do segundo dígito
-        sum2 = sum(int(doc[i]) * (11 - i) for i in range(10))
-        digit2 = ((sum2 * 10) % 11) % 10
-        return doc[-2:] == f"{digit1}{digit2}"
-
-    elif doc_type == 'cnpj':
-        if len(doc) != 14:
-            return False
-        weights1 = [5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2]
-        weights2 = [6, 5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2]
-        sum1 = sum(int(doc[i]) * weights1[i] for i in range(12))
-        sum2 = sum(int(doc[i]) * weights2[i] for i in range(13))
-        digit1 = 0 if (sum1 % 11) < 2 else (11 - (sum1 % 11))
-        digit2 = 0 if (sum2 % 11) < 2 else (11 - (sum2 % 11))
-        return doc[-2:] == f"{digit1}{digit2}"
-
-    return False
+# Função removida: validate_document (agora validação é feita no frontend)
 
 @contextmanager
 def get_db(db_name):
@@ -81,11 +51,13 @@ def search_person(query):
         cursor = conn.cursor()
         query_clean = re.sub(r'\D', '', query)
 
-        if len(query_clean) == 11 and validate_document(query_clean, 'cpf'):
+        # Se parece ser um CPF (11 dígitos), buscar exato
+        if len(query_clean) == 11:
             cursor.execute("SELECT * FROM cpf WHERE cpf = ?", (query_clean,))
             result = cursor.fetchone()
             return [dict(result)] if result else []
         else:
+            # Buscar por nome (parcial)
             cursor.execute("SELECT * FROM cpf WHERE nome LIKE ? LIMIT 100", (f"%{query}%",))
             return [dict(row) for row in cursor.fetchall()]
 
@@ -188,9 +160,7 @@ def search_company_endpoint():
     if not cnpj:
         return jsonify({'error': 'CNPJ é obrigatório'}), 400
 
-    if not validate_document(cnpj, 'cnpj'):
-        return jsonify({'error': 'CNPJ inválido'}), 400
-
+    # Remover máscara do CNPJ (validação já foi feita no frontend)
     cnpj_clean = re.sub(r'\D', '', cnpj)
     company = search_company_by_cnpj(cnpj_clean)
 
@@ -220,9 +190,7 @@ def get_person_companies():
     if not cpf:
         return jsonify({'error': 'CPF é obrigatório'}), 400
 
-    if not validate_document(cpf, 'cpf'):
-        return jsonify({'error': 'CPF inválido'}), 400
-
+    # Remover máscara do CPF (validação já foi feita no frontend)
     cpf_clean = re.sub(r'\D', '', cpf)
     companies = search_companies_by_cpf(cpf_clean)
 

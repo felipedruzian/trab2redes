@@ -6,6 +6,105 @@
     <title>Sistema de Consulta Integrada - Debug</title>
     <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
     <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
+
+    <!-- Incluir as classes de validação -->
+    <script>
+        // Conteúdo do refs/cpf.js
+        class CPFValidator {
+            static CPF_LENGTH = 11;
+            static BASE_LENGTH = 9;
+            static REGEX_NON_DIGITS = /[^\d]/g;
+            static REGEX_ALL_REPEATING = /^(\d)\1{10}$/;
+            static WEIGHTS_DV1 = [10, 9, 8, 7, 6, 5, 4, 3, 2];
+            static WEIGHTS_DV2 = [11, 10, 9, 8, 7, 6, 5, 4, 3, 2];
+
+            static isValid(cpf) {
+              if (!cpf || typeof cpf !== 'string') return false;
+              const cleanedCpf = this._clean(cpf);
+
+              if (cleanedCpf.length !== this.CPF_LENGTH) return false;
+
+              if (this.REGEX_ALL_REPEATING.test(cleanedCpf)) return false;
+
+              const base = cleanedCpf.substring(0, this.BASE_LENGTH);
+              const providedDvs = cleanedCpf.substring(this.BASE_LENGTH, this.CPF_LENGTH);
+
+              const calculatedDvs = this._calculateCheckDigits(base);
+
+              return providedDvs === calculatedDvs;
+            }
+
+            static _clean(cpf) {
+              return cpf.replace(this.REGEX_NON_DIGITS, "");
+            }
+
+            static _calculateCheckDigits(base) {
+              const baseNumbers = base.split('').map(Number);
+
+              const dv1 = this._calculateDigit(baseNumbers, this.WEIGHTS_DV1);
+              const dv2 = this._calculateDigit([...baseNumbers, dv1], this.WEIGHTS_DV2);
+
+              return `${dv1}${dv2}`;
+            }
+
+            static _calculateDigit(numbers, weights) {
+              const sum = numbers.reduce((acc, number, index) => {
+                return acc + (number * weights[index]);
+              }, 0);
+
+              const rest = sum % 11;
+              return rest < 2 ? 0 : 11 - rest;
+            }
+        }
+
+        // Conteúdo do refs/cnpj.js
+        class CNPJValidator {
+            static tamanhoCNPJSemDV = 12;
+            static regexCNPJSemDV = /^([A-Z\d]){12}$/;
+            static regexCNPJ = /^([A-Z\d]){12}(\d){2}$/;
+            static regexCaracteresMascara = /[./-]/g;
+            static regexCaracteresNaoPermitidos = /[^A-Z\d./-]/i;
+            static valorBase = "0".charCodeAt(0);
+            static pesosDV = [6, 5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2];
+            static cnpjZerado = "00000000000000";
+
+            static isValid(cnpj) {
+                if (!this.regexCaracteresNaoPermitidos.test(cnpj)) {
+                    let cnpjSemMascara = this.removeMascaraCNPJ(cnpj);
+                    if (this.regexCNPJ.test(cnpjSemMascara) && cnpjSemMascara !== this.cnpjZerado) {
+                        const dvInformado = cnpjSemMascara.substring(this.tamanhoCNPJSemDV);
+                        const dvCalculado = this.calculaDV(cnpjSemMascara.substring(0, this.tamanhoCNPJSemDV));
+                        return dvInformado === dvCalculado;
+                    }
+                }
+                return false;
+            }
+
+            static calculaDV(cnpj) {
+                if (!this.regexCaracteresNaoPermitidos.test(cnpj)) {
+                    let cnpjSemMascara = this.removeMascaraCNPJ(cnpj);
+                    if (this.regexCNPJSemDV.test(cnpjSemMascara) && cnpjSemMascara !== this.cnpjZerado.substring(0, this.tamanhoCNPJSemDV)) {
+                        let somatorioDV1 = 0;
+                        let somatorioDV2 = 0;
+                        for (let i = 0; i < this.tamanhoCNPJSemDV; i++) {
+                            const asciiDigito = cnpjSemMascara.charCodeAt(i) - this.valorBase;
+                            somatorioDV1 += asciiDigito * this.pesosDV[i + 1];
+                            somatorioDV2 += asciiDigito * this.pesosDV[i];
+                        }
+                        const dv1 = somatorioDV1 % 11 < 2 ? 0 : 11 - (somatorioDV1 % 11);
+                        somatorioDV2 += dv1 * this.pesosDV[this.tamanhoCNPJSemDV];
+                        const dv2 = somatorioDV2 % 11 < 2 ? 0 : 11 - (somatorioDV2 % 11);
+                        return `${dv1}${dv2}`;
+                    }
+                }
+                throw new Error("Não é possível calcular o DV pois o CNPJ fornecido é inválido");
+            }
+
+            static removeMascaraCNPJ(cnpj) {
+                return cnpj.replace(this.regexCaracteresMascara, "");
+            }
+        }
+    </script>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -235,22 +334,40 @@
                 
                 async search() {
                     if (!this.searchQuery.trim()) return;
-                    
+
                     this.loading = true;
                     this.clearMessages();
                     this.results = null;
-                    
+
                     try {
                         let response;
                         let endpoint;
                         let requestData;
-                        
+
                         if (this.searchType === 'person') {
                             endpoint = 'http://localhost:5000/api/search_person';
                             requestData = { query: this.searchQuery };
+
+                            // Validação CPF se a query parece ser um CPF
+                            const cleanQuery = this.searchQuery.replace(/\D/g, '');
+                            if (cleanQuery.length === 11) {
+                                if (!CPFValidator.isValid(this.searchQuery)) {
+                                    this.error = 'CPF inválido';
+                                    this.loading = false;
+                                    return;
+                                }
+                            }
+
                         } else {
                             endpoint = 'http://localhost:5000/api/search_company';
                             requestData = { cnpj: this.searchQuery };
+
+                            // Validação CNPJ
+                            if (!CNPJValidator.isValid(this.searchQuery)) {
+                                this.error = 'CNPJ inválido';
+                                this.loading = false;
+                                return;
+                            }
                         }
                         
                         this.lastEndpoint = endpoint;
@@ -301,9 +418,17 @@
                     }
                 },
                 
+
                 async selectPerson(cpf) {
                     this.loading = true;
                     this.clearMessages();
+
+                    // Validação CPF
+                    if (!CPFValidator.isValid(cpf)) {
+                        this.error = 'CPF inválido';
+                        this.loading = false;
+                        return;
+                    }
 
                     try {
                         const endpoint = 'http://localhost:5000/api/person_companies';
@@ -325,12 +450,7 @@
                         // Mostrar JSON bruto
                         this.jsonOutput = JSON.stringify(response.data, null, 2);
 
-                        // Mensagem de sucesso baseada no tipo
-                        if (response.data.type === 'person_companies') {
-                            this.success = `Dados da pessoa e empresas carregados com sucesso! Encontradas ${response.data.data.length} empresa(s)`;
-                        } else {
-                            this.success = `Dados da pessoa e empresas carregados com sucesso!`;
-                        }
+                        this.success = `Dados da pessoa e empresas carregados com sucesso!`;
 
                     } catch (err) {
                         this.error = err.response?.data?.error || `Erro ao buscar dados da pessoa: ${err.message}`;
