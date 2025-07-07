@@ -36,7 +36,7 @@ def handle_errors(f):
 # Rotas
 @app.route('/')
 def index():
-    return send_from_directory('frontend', 'index.html')
+    return send_from_directory('frontend/public', 'index.html')
 
 @app.route('/api/search_person', methods=['POST'])
 @handle_errors

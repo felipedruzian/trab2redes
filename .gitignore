@@ -4,3 +4,6 @@
 /venv/
 /refs/
 trab2.txt
+/*/node_modules/
+/frontend-legacy
+
