@@ -204,7 +204,7 @@ export default {
       return FormatUtils.formatCurrency(value);
     },
     formatDate(date) {
-      return FormatUtils.formatDateOnly(date);
+      return FormatUtils.formatDate(date);
     },
     hasAddress(company) {
       return company && (

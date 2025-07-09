@@ -148,6 +148,11 @@ export class FormatUtils {
         }
     }
 
+    // Alias para compatibilidade
+    static formatDateOnly(dateString) {
+        return this.formatDate(dateString);
+    }
+
     static truncateText(text, maxLength = 50) {
         if (!text) return 'N/A';
         if (text.length <= maxLength) return text;
