@@ -1,16 +1,16 @@
 import sqlite3
 import re
 import logging
-from multiprocessing import Pool
 from contextlib import contextmanager
+import multiprocessing
 import sys
 import os
 
-# Adicionar o diretório pai ao path para permitir imports
+# Adicionar o diretório pai ao path para importar config
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-
 from backend.config import DATABASE_CONFIG, THREAD_CONFIG
 
+# Configurar logging
 logger = logging.getLogger(__name__)
 
 @contextmanager
@@ -133,37 +133,29 @@ def get_partner_with_details(partner):
         
     return partner
 
+
 def search_partners_by_cnpj(cnpj):
-    """Busca sócios por CNPJ da empresa - versão sequencial"""
-    partners = []
+    """Busca sócios por CNPJ da empresa - versão com multiprocessing"""
+    # Primeiro buscar dados básicos dos sócios
+    partners_basic = search_partners_basic_by_cnpj(cnpj)
 
-    with get_db('cnpj.db') as conn_cnpj:
-        cursor_cnpj = conn_cnpj.cursor()
+    if not partners_basic:
+        return []
 
-        query = """
-        SELECT cnpj_cpf_socio, nome_socio, qualificacao_socio, data_entrada_sociedade, faixa_etaria
-        FROM socios WHERE cnpj = ?
-        """
-        cursor_cnpj.execute(query, (cnpj,))
+    try:
+        # Usar multiprocessing para buscar detalhes de múltiplos sócios em paralelo
+        num_processes = min(len(partners_basic), multiprocessing.cpu_count())
 
-        for row in cursor_cnpj.fetchall():
-            partner = dict(row)
-            cnpj_cpf_socio = partner['cnpj_cpf_socio']
-            nome_socio = partner['nome_socio']
+        with multiprocessing.Pool(processes=num_processes) as pool:
+            # Mapear a função get_partner_with_details para todos os sócios
+            partners_with_details = pool.map(get_partner_with_details, partners_basic)
 
-            # Buscar dados completos no basecpf.db
-            partner_details = search_partner_details(cnpj_cpf_socio, nome_socio)
+        return partners_with_details
 
-            if partner_details:
-                # Adicionar dados completos ao partner
-                partner['cpf'] = partner_details['cpf']
-                partner['nome_completo'] = partner_details['nome']
-                partner['sexo'] = partner_details['sexo']
-                partner['data_nascimento'] = partner_details['nasc']
-
-            partners.append(partner)
-
-    return partners
+    except Exception as e:
+        logger.error(f"Erro na busca paralela de detalhes dos sócios: {e}")
+        # Fallback para busca sequencial
+        return [get_partner_with_details(partner) for partner in partners_basic]
 
 def search_partners_basic_by_cnpj(cnpj):
     """Busca dados básicos dos sócios por CNPJ da empresa"""
@@ -200,50 +192,87 @@ def search_partner_details(cnpj_cpf_socio, nome_socio):
 
 
 # ----------- Novas funções com multiprocessing
+
+# Funções auxiliares para multiprocessing
+def _search_person_worker(query):
+    """Worker function para busca de pessoa"""
+    return search_person(query)
+
+def _search_company_worker(cnpj):
+    """Worker function para busca de empresa"""
+    return search_company_by_cnpj(cnpj)
+
+def _search_partners_worker(cnpj):
+    """Worker function para busca de sócios"""
+    return search_partners_by_cnpj(cnpj)
+
+def _search_companies_by_cpf_worker(cpf):
+    """Worker function para busca de empresas por CPF"""
+    return search_companies_by_cpf(cpf)
+
 def search_person_parallel(query):
-    """Busca pessoa com otimização paralela se necessário"""
-    # Para busca simples, não há muito a paralelizar
+    """Versão paralela da busca de pessoa"""
+    # Para busca simples de pessoa, não há necessidade de paralelização
+    # pois é uma única query
     return search_person(query)
 
 def search_company_with_partners_parallel(cnpj):
-    """Busca empresa e sócios em paralelo - refatorado para evitar processos aninhados"""
-    # Primeiro buscar dados básicos
-    with Pool(processes=2) as pool:
-        # Executar buscas básicas em paralelo
-        future_company = pool.apply_async(search_company_by_cnpj, (cnpj,))
-        future_partners_basic = pool.apply_async(search_partners_basic_by_cnpj, (cnpj,))
+    """Busca empresa e sócios em paralelo"""
+    try:
+        # Usar multiprocessing.Pool para paralelizar
+        num_processes = min(len(partners_basic), multiprocessing.cpu_count())
         
-        # Aguardar resultados
-        company = future_company.get()
-        partners_basic = future_partners_basic.get()
-    
-    # Se não há sócios, retornar apenas empresa
-    if not partners_basic:
+        with multiprocessing.Pool(processes=num_processes) as pool:
+            # Submeter tarefas em paralelo
+            company_result = pool.apply_async(_search_company_worker, (cnpj,))
+            partners_result = pool.apply_async(_search_partners_worker, (cnpj,))
+
+            # Aguardar resultados
+            company_data = company_result.get()
+            partners_data = partners_result.get()
+
         return {
-            'company': company,
-            'partners': []
+            'company': company_data,
+            'partners': partners_data
         }
-    
-    # Agora buscar detalhes de cada sócio em paralelo
-    with Pool(processes=THREAD_CONFIG['max_workers']) as pool:
-        partners_with_details = pool.map(get_partner_with_details, partners_basic)
-    
-    return {
-        'company': company,
-        'partners': partners_with_details
-    }
+    except Exception as e:
+        logger.error(f"Erro na busca paralela de empresa: {e}")
+        # Fallback para busca sequencial
+        company_data = search_company_by_cnpj(cnpj)
+        partners_data = search_partners_by_cnpj(cnpj)
+        return {
+            'company': company_data,
+            'partners': partners_data
+        }
 
 def search_person_companies_parallel(cpf):
-    """Busca pessoa e empresas em paralelo"""
-    with Pool(processes=2) as pool:
-        # Buscar dados da pessoa e empresas simultaneamente
-        future_person = pool.apply_async(search_person, (cpf,))
-        future_companies = pool.apply_async(search_companies_by_cpf, (cpf,))
-        
-        person_data = future_person.get()
-        companies_data = future_companies.get()
-        
+    """Busca pessoa e suas empresas em paralelo"""
+    try:
+        num_processes = min(len(partners_basic), multiprocessing.cpu_count())
+        # Usar multiprocessing.Pool para paralelizar
+        with multiprocessing.Pool(processes=num_processes) as pool:
+            # Submeter tarefas em paralelo
+            person_result = pool.apply_async(_search_person_worker, (cpf,))
+            companies_result = pool.apply_async(_search_companies_by_cpf_worker, (cpf,))
+
+            # Aguardar resultados
+            person_data = person_result.get()
+            companies_data = companies_result.get()
+
         return {
             'person': person_data,
             'companies': companies_data
         }
+    except Exception as e:
+        logger.error(f"Erro na busca paralela de pessoa e empresas: {e}")
+        # Fallback para busca sequencial
+        person_data = search_person(cpf)
+        companies_data = search_companies_by_cpf(cpf)
+        return {
+            'person': person_data,
+            'companies': companies_data
+        }
+
+# Proteção para multiprocessing
+if __name__ == '__main__':
+    multiprocessing.freeze_support()

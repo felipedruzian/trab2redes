@@ -43,11 +43,11 @@ def index():
 def search_person_endpoint():
     data = request.get_json()
     query = data.get('query', '').strip() if data else ''
-    
+
     if not query:
         return jsonify({'error': 'Query é obrigatória'}), 400
-    
-    people = search_person(query)
+
+    people = search_person_parallel(query)
     return jsonify({
         'message': f'Encontradas {len(people)} pessoa(s)',
         'type': 'people_list',
@@ -127,5 +127,7 @@ def internal_error(error):
     return jsonify({'error': 'Erro interno do servidor'}), 500
 
 if __name__ == '__main__':
+    import multiprocessing
+    multiprocessing.freeze_support()
     logger.info(f"Servidor rodando em http://{API_CONFIG['host']}:{API_CONFIG['port']}")
     app.run(host=API_CONFIG['host'], port=API_CONFIG['port'], debug=API_CONFIG['debug'])
