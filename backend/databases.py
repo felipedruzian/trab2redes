@@ -1,7 +1,7 @@
 import sqlite3
 import re
 import logging
-from concurrent.futures import ThreadPoolExecutor, as_completed
+from multiprocessing import Pool
 from contextlib import contextmanager
 import sys
 import os
@@ -113,8 +113,24 @@ def search_company_by_cnpj(cnpj):
         result = cursor.fetchone()
         return dict(result) if result else None
 
+# Função auxiliar para multiprocessing - deve estar no nível do módulo
+def get_partner_with_details(partner):
+    """Busca detalhes completos de um sócio específico"""
+    cnpj_cpf_socio = partner['cnpj_cpf_socio']
+    nome_socio = partner['nome_socio']
+    
+    partner_details = search_partner_details(cnpj_cpf_socio, nome_socio)
+    
+    if partner_details:
+        partner['cpf'] = partner_details['cpf']
+        partner['nome_completo'] = partner_details['nome']
+        partner['sexo'] = partner_details['sexo']
+        partner['data_nascimento'] = partner_details['nasc']
+        
+    return partner
+
 def search_partners_by_cnpj(cnpj):
-    """Busca sócios por CNPJ da empresa - retorna apenas dados básicos"""
+    """Busca sócios por CNPJ da empresa - versão sequencial"""
     partners = []
 
     with get_db('cnpj.db') as conn_cnpj:
@@ -145,6 +161,18 @@ def search_partners_by_cnpj(cnpj):
 
     return partners
 
+def search_partners_basic_by_cnpj(cnpj):
+    """Busca dados básicos dos sócios por CNPJ da empresa"""
+    with get_db('cnpj.db') as conn_cnpj:
+        cursor_cnpj = conn_cnpj.cursor()
+
+        query = """
+        SELECT cnpj_cpf_socio, nome_socio, qualificacao_socio, data_entrada_sociedade, faixa_etaria
+        FROM socios WHERE cnpj = ?
+        """
+        cursor_cnpj.execute(query, (cnpj,))
+        return [dict(row) for row in cursor_cnpj.fetchall()]
+
 def search_partner_details(cnpj_cpf_socio, nome_socio):
     """Busca dados completos de um sócio específico usando CPF parcial e nome"""
     with get_db('basecpf.db') as conn_cpf:
@@ -167,37 +195,49 @@ def search_partner_details(cnpj_cpf_socio, nome_socio):
         return dict(result) if result else None
 
 
-# ----------- Novas funções com multithreading
+# ----------- Novas funções com multiprocessing
 def search_person_parallel(query):
     """Busca pessoa com otimização paralela se necessário"""
     # Para busca simples, não há muito a paralelizar
     return search_person(query)
 
 def search_company_with_partners_parallel(cnpj):
-    """Busca empresa e sócios em paralelo"""
-    with ThreadPoolExecutor(max_workers=THREAD_CONFIG['max_workers']) as executor:
-        # Executar em paralelo
-        future_company = executor.submit(search_company_by_cnpj, cnpj)
-        future_partners = executor.submit(search_partners_by_cnpj, cnpj)
+    """Busca empresa e sócios em paralelo - refatorado para evitar processos aninhados"""
+    # Primeiro buscar dados básicos
+    with Pool(processes=2) as pool:
+        # Executar buscas básicas em paralelo
+        future_company = pool.apply_async(search_company_by_cnpj, (cnpj,))
+        future_partners_basic = pool.apply_async(search_partners_basic_by_cnpj, (cnpj,))
         
         # Aguardar resultados
-        company = future_company.result()
-        partners = future_partners.result()
-        
+        company = future_company.get()
+        partners_basic = future_partners_basic.get()
+    
+    # Se não há sócios, retornar apenas empresa
+    if not partners_basic:
         return {
             'company': company,
-            'partners': partners
+            'partners': []
         }
+    
+    # Agora buscar detalhes de cada sócio em paralelo
+    with Pool(processes=THREAD_CONFIG['max_workers']) as pool:
+        partners_with_details = pool.map(get_partner_with_details, partners_basic)
+    
+    return {
+        'company': company,
+        'partners': partners_with_details
+    }
 
 def search_person_companies_parallel(cpf):
     """Busca pessoa e empresas em paralelo"""
-    with ThreadPoolExecutor(max_workers=THREAD_CONFIG['max_workers']) as executor:
+    with Pool(processes=2) as pool:
         # Buscar dados da pessoa e empresas simultaneamente
-        future_person = executor.submit(search_person, cpf)
-        future_companies = executor.submit(search_companies_by_cpf, cpf)
+        future_person = pool.apply_async(search_person, (cpf,))
+        future_companies = pool.apply_async(search_companies_by_cpf, (cpf,))
         
-        person_data = future_person.result()
-        companies_data = future_companies.result()
+        person_data = future_person.get()
+        companies_data = future_companies.get()
         
         return {
             'person': person_data,
