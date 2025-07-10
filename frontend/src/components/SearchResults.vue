@@ -11,14 +11,14 @@
           <i class="fas fa-info-circle"></i>
           Clique em uma pessoa para ver suas empresas associadas:
         </p>
-        <div class="people-grid">
+        <div class="people-grid grid-base">
           <div
             v-for="person in results.people"
             :key="person.cpf"
-            class="person-card"
+            class="person-card card-item-base"
             @click="selectPerson(person.cpf)"
           >
-            <div class="person-name">
+            <div class="person-name item-name ">
               <i class="fas fa-user"></i>
               {{ person.nome }}
             </div>
@@ -32,6 +32,21 @@
               <strong>Nascimento:</strong> {{ formatDate(person.nasc) }}
             </div>
           </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Dados da Pessoa Selecionada -->
+    <div v-if="selectedPerson && results.type === 'selected_person'" class="company-results">
+      <div class="card company-info">
+        <div class="company-name">
+          <i class="fas fa-user"></i>
+          {{ selectedPerson.nome }}
+        </div>
+        <div class="company-details">
+          <div><strong>CPF:</strong> {{ formatCPF(selectedPerson.cpf) }}</div>
+          <div v-if="selectedPerson.sexo"><strong>Sexo:</strong> {{ selectedPerson.sexo }}</div>
+          <div v-if="selectedPerson.nasc"><strong>Nascimento:</strong> {{ formatDate(selectedPerson.nasc) }}</div>
         </div>
       </div>
     </div>
@@ -73,21 +88,21 @@
           <h3>Sócios ({{ results.data.partners.length }})</h3>
         </div>
         <div class="card-content">
-          <div v-if="results.data.partners.length === 0" class="no-partners">
+          <div v-if="results.data.partners.length === 0" class="no-results">
             <i class="fas fa-info-circle"></i>
             Nenhum sócio encontrado para esta empresa.
           </div>
-          <div v-else class="partners-grid">
+          <div v-else class="partners-grid grid-base">
             <div
               v-for="(partner, index) in results.data.partners"
               :key="index"
-              class="partner-card"
+              class="partner-card card-item-base"
             >
-              <div class="partner-name">
+              <div class="partner-name item-name ">
                 <i class="fas fa-user-tie"></i>
                 {{ partner.nome_socio || partner.nome_completo }}
               </div>
-              <div class="partner-details">
+              <div class="partner-details item-details">
                 <div v-if="partner.cpf">
                   <strong>CPF:</strong> {{ formatCPF(partner.cpf) }}
                 </div>
@@ -123,15 +138,15 @@
         <h3>Empresas Associadas ({{ results.data.length }})</h3>
       </div>
       <div class="card-content">
-        <div v-if="results.data.length === 0" class="no-companies">
+        <div v-if="results.data.length === 0" class="no-results">
           <i class="fas fa-info-circle"></i>
           Nenhuma empresa encontrada para esta pessoa.
         </div>
-        <div v-else class="companies-grid">
+        <div v-else class="companies-grid grid-base">
           <div
             v-for="(company, index) in results.data"
             :key="index"
-            class="company-card"
+            class="company-card card-item-base"
           >
             <div class="company-card-header">
               <div class="company-name">
@@ -142,7 +157,7 @@
                 {{ formatCNPJ(company.cnpj) }}
               </div>
             </div>
-            <div class="company-card-details">
+            <div class="company-card-details item-details">
               <div v-if="company.nome_fantasia">
                 <strong>Nome Fantasia:</strong> {{ company.nome_fantasia }}
               </div>
@@ -188,6 +203,10 @@ export default {
     results: {
       type: Object,
       required: true
+    },
+    selectedPerson: {
+      type: Object,
+      default: null
     }
   },
   methods: {
@@ -218,9 +237,9 @@ export default {
     },
     getFullAddress(company) {
       if (!company) return '';
-      
+
       const addressParts = [];
-      
+
       if (company.logradouro) {
         let street = company.logradouro;
         if (company.numero) {
@@ -231,11 +250,11 @@ export default {
         }
         addressParts.push(street);
       }
-      
+
       if (company.bairro) {
         addressParts.push(company.bairro);
       }
-      
+
       if (company.municipio && company.uf) {
         addressParts.push(`${company.municipio} - ${company.uf}`);
       } else if (company.municipio) {
@@ -243,11 +262,11 @@ export default {
       } else if (company.uf) {
         addressParts.push(company.uf);
       }
-      
+
       if (company.cep) {
         addressParts.push(`CEP: ${company.cep}`);
       }
-      
+
       return addressParts.join(' • ');
     }
   }

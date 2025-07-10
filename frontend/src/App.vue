@@ -25,10 +25,18 @@
           :success="success"
         />
 
+        <!-- Card da Pessoa Selecionada -->
+        <SearchResults
+          v-if="selectedPerson"
+          :results="{ type: 'selected_person' }"
+          :selected-person="selectedPerson"
+        />
+
         <!-- Results Display -->
         <SearchResults
           v-if="results"
           :results="results"
+          :selected-person="selectedPerson"
           @person-selected="handlePersonSelected"
         />
 
@@ -64,6 +72,7 @@ export default {
       error: null,
       success: null,
       results: null,
+      selectedPerson: null,
       debugData: {
         jsonOutput: null,
         requestInfo: null,
@@ -90,6 +99,8 @@ export default {
       this.clearMessages();
       this.clearDebugData();
       this.results = null;
+      // Limpar selectedPerson ao iniciar uma nova busca
+      this.selectedPerson = null;
 
       try {
         let endpoint, requestData;
@@ -133,6 +144,11 @@ export default {
       }
     },
     async handlePersonSelected(cpf) {
+      // Encontrar a pessoa selecionada nos resultados atuais
+      if (this.results && this.results.people) {
+        this.selectedPerson = this.results.people.find(person => person.cpf === cpf);
+      }
+
       this.loading = true;
       this.clearMessages();
       this.clearDebugData();

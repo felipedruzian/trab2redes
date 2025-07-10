@@ -50,7 +50,7 @@ body {
     padding: 2rem 0;
 }
 
-/* Cards */
+/* Cards Base */
 .card {
     background: white;
     border-radius: 15px;
@@ -78,6 +78,30 @@ body {
     padding: 2rem;
 }
 
+/* Buttons Base */
+.btn-base {
+    border: none;
+    border-radius: 10px;
+    cursor: pointer;
+    font-weight: 500;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+}
+
+.btn-base:hover:not(:disabled) {
+    transform: translateY(-2px);
+}
+
+.btn-base:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
+}
+
 /* Search Form */
 .search-tabs {
     display: flex;
@@ -88,23 +112,13 @@ body {
 .tab-button {
     flex: 1;
     padding: 1rem 1.5rem;
-    border: none;
     background: #f8f9fa;
     color: #666;
-    border-radius: 10px;
-    cursor: pointer;
-    transition: all 0.3s ease;
-    font-weight: 500;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 0.5rem;
 }
 
 .tab-button.active {
     background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
     color: white;
-    transform: translateY(-2px);
     box-shadow: 0 5px 15px rgba(79, 172, 254, 0.3);
 }
 
@@ -138,28 +152,11 @@ body {
     padding: 1rem 2rem;
     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
     color: white;
-    border: none;
-    border-radius: 10px;
-    cursor: pointer;
-    font-weight: 600;
-    transition: all 0.3s ease;
     min-width: 140px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 0.5rem;
 }
 
 .search-button:hover:not(:disabled) {
-    transform: translateY(-2px);
     box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
-}
-
-.search-button:disabled {
-    opacity: 0.6;
-    cursor: not-allowed;
-    transform: none;
-    box-shadow: none;
 }
 
 /* Search Tips */
@@ -227,6 +224,105 @@ body {
     border-left: 4px solid #4caf50;
 }
 
+/* Grid Layouts */
+.grid-base {
+    display: grid;
+    gap: 1rem;
+    margin-top: 1rem;
+}
+
+.people-grid {
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+}
+
+.partners-grid {
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+}
+
+.companies-grid {
+    grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+}
+
+/* Card Items Base */
+.card-item-base {
+    background: white;
+    border-radius: 10px;
+    padding: 1.5rem;
+    transition: all 0.3s ease;
+}
+
+.card-item-base:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(79, 172, 254, 0.15);
+}
+
+/* Person Cards */
+.person-card {
+    border: 2px solid #e9ecef;
+    cursor: pointer;
+}
+
+.person-card:hover {
+    border-color: #4facfe;
+    transform: translateY(-3px);
+    box-shadow: 0 8px 25px rgba(79, 172, 254, 0.15);
+}
+
+/* Partner Cards */
+.partner-card {
+    border-left: 4px solid #4facfe;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.partner-card:hover {
+    transform: translateX(5px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+/* Company Cards */
+.company-card {
+    border: 2px solid #e9ecef;
+}
+
+.company-card:hover {
+    border-color: #4facfe;
+}
+
+/* Names and Titles */
+.item-name {
+    font-weight: 600;
+    color: #333;
+    margin-bottom: 0.75rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.person-name {
+    font-size: 1.1rem;
+    margin-bottom: 0.5rem;
+}
+
+.partner-name, .company-card .company-name {
+    font-size: 1.1rem;
+}
+
+/* Details */
+.item-details {
+    color: #666;
+    font-size: 0.9rem;
+}
+
+.item-details > div {
+    margin-bottom: 0.25rem;
+}
+
+.person-cpf, .person-detail {
+    color: #666;
+    font-size: 0.9rem;
+    margin-bottom: 0.25rem;
+}
+
 /* Results */
 .results-instruction {
     background: #e3f2fd;
@@ -239,44 +335,7 @@ body {
     color: #1976d2;
 }
 
-.people-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-    gap: 1rem;
-}
-
-.person-card {
-    background: white;
-    border: 2px solid #e9ecef;
-    border-radius: 10px;
-    padding: 1.5rem;
-    cursor: pointer;
-    transition: all 0.3s ease;
-}
-
-.person-card:hover {
-    border-color: #4facfe;
-    transform: translateY(-3px);
-    box-shadow: 0 8px 25px rgba(79, 172, 254, 0.15);
-}
-
-.person-name {
-    font-size: 1.1rem;
-    font-weight: 600;
-    color: #333;
-    margin-bottom: 0.5rem;
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-}
-
-.person-cpf, .person-detail {
-    color: #666;
-    font-size: 0.9rem;
-    margin-bottom: 0.25rem;
-}
-
-/* Company Results */
+/* Company Info */
 .company-info {
     background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
     color: white;
@@ -309,86 +368,11 @@ body {
     font-style: italic;
 }
 
-/* Partners */
-.partners-section {
-    margin-top: 2rem;
-}
-
-.partners-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-    gap: 1rem;
-    margin-top: 1rem;
-}
-
-.partner-card {
-    background: white;
-    border-radius: 10px;
-    padding: 1.5rem;
-    border-left: 4px solid #4facfe;
-    transition: transform 0.3s ease;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-}
-
-.partner-card:hover {
-    transform: translateX(5px);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-}
-
-.partner-name {
-    font-weight: 600;
-    color: #333;
-    margin-bottom: 0.75rem;
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-}
-
-.partner-details {
-    color: #666;
-    font-size: 0.9rem;
-}
-
-.partner-details > div {
-    margin-bottom: 0.25rem;
-}
-
-/* Companies Grid (person companies) */
-.companies-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
-    gap: 1rem;
-    margin-top: 1rem;
-}
-
-.company-card {
-    background: white;
-    border: 2px solid #e9ecef;
-    border-radius: 10px;
-    padding: 1.5rem;
-    transition: all 0.3s ease;
-}
-
-.company-card:hover {
-    border-color: #4facfe;
-    transform: translateY(-2px);
-    box-shadow: 0 6px 20px rgba(79, 172, 254, 0.15);
-}
-
+/* Company Card Header */
 .company-card-header {
     margin-bottom: 1rem;
     padding-bottom: 1rem;
     border-bottom: 1px solid #e9ecef;
-}
-
-.company-card .company-name {
-    font-size: 1.1rem;
-    font-weight: 600;
-    color: #333;
-    margin-bottom: 0.5rem;
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
 }
 
 .company-cnpj {
@@ -397,17 +381,8 @@ body {
     font-size: 0.9rem;
 }
 
-.company-card-details {
-    color: #666;
-    font-size: 0.9rem;
-}
-
-.company-card-details > div {
-    margin-bottom: 0.25rem;
-}
-
-/* No results states */
-.no-partners, .no-companies, .not-found {
+/* No Results */
+.no-results {
     text-align: center;
     padding: 2rem;
     color: #666;
@@ -438,15 +413,7 @@ body {
 .debug-toggle {
     background: #6c757d;
     color: white;
-    border: none;
     padding: 1rem 1.5rem;
-    border-radius: 10px;
-    cursor: pointer;
-    font-weight: 500;
-    transition: all 0.3s ease;
-    display: flex;
-    align-items: center;
-    gap: 0.75rem;
     width: 100%;
     justify-content: flex-start;
 }
@@ -454,20 +421,6 @@ body {
 .debug-toggle:hover {
     background: #5a6268;
     transform: translateY(-1px);
-}
-
-.debug-toggle i:first-child {
-    transition: transform 0.3s ease;
-}
-
-.debug-toggle.expanded i:first-child {
-    transform: rotate(90deg);
-}
-
-.debug-count {
-    margin-left: auto;
-    opacity: 0.8;
-    font-weight: 400;
 }
 
 .debug-content {
@@ -520,47 +473,6 @@ body {
     line-height: 1.4;
 }
 
-.debug-actions {
-    padding: 1rem 1.5rem;
-    background: #4a5568;
-    display: flex;
-    gap: 0.5rem;
-    justify-content: flex-end;
-}
-
-.debug-action-btn {
-    background: #667eea;
-    color: white;
-    border: none;
-    padding: 0.5rem;
-    border-radius: 6px;
-    cursor: pointer;
-    transition: all 0.3s ease;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 36px;
-    height: 36px;
-}
-
-.debug-action-btn:hover {
-    background: #764ba2;
-    transform: translateY(-1px);
-}
-
-/* Endpoint info */
-.endpoint-info {
-    background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%);
-    border-left: 4px solid #2196f3;
-    padding: 1rem 1.5rem;
-    border-radius: 8px;
-    margin-bottom: 1rem;
-}
-
-.endpoint-info strong {
-    color: #1976d2;
-}
-
 /* Loading animation */
 .loading-spinner {
     display: inline-block;
@@ -601,11 +513,6 @@ body {
     .people-grid, .partners-grid, .companies-grid {
         grid-template-columns: 1fr;
     }
-    
-    .debug-actions {
-        justify-content: center;
-        flex-wrap: wrap;
-    }
 }
 
 /* Scrollbar */
@@ -627,7 +534,6 @@ body {
     background: #a8a8a8;
 }
 
-/* Dark scrollbar for debug sections */
 .debug-section-content::-webkit-scrollbar {
     width: 6px;
 }

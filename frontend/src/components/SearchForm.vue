@@ -7,14 +7,14 @@
     <div class="card-content">
       <div class="search-tabs">
         <button
-          class="tab-button"
+          class="tab-button btn-base"
           :class="{ active: searchType === 'person' }"
           @click="searchType = 'person'"
         >
           <i class="fas fa-user"></i> Pessoa Física
         </button>
         <button
-          class="tab-button"
+          class="tab-button btn-base"
           :class="{ active: searchType === 'company' }"
           @click="searchType = 'company'"
         >
@@ -33,7 +33,7 @@
         <button
           @click="performSearch"
           :disabled="loading || !searchQuery.trim()"
-          class="search-button"
+          class="search-button btn-base"
         >
           <span v-if="loading" class="loading-spinner"></span>
           <i v-else class="fas fa-search"></i>

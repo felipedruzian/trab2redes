@@ -1,6 +1,6 @@
 <template>
   <div class="debug-panel">
-    <button @click="isExpanded = !isExpanded" class="debug-toggle">
+    <button @click="isExpanded = !isExpanded" class="btn-base debug-toggle">
       <i class="fas fa-code"></i>
       Informações de Debug
     </button>
