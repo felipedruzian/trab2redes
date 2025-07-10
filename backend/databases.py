@@ -62,7 +62,11 @@ def search_companies_by_cpf(cpf):
             result = cursor_cpf.fetchone()
             pessoa = dict(result) if result else None
 
-        # Query para buscar por CPF parcial e/ou nome
+        # Se não encontrou a pessoa, não pode fazer a busca correlacionada
+        if not pessoa:
+            return []
+
+        # Query para buscar por CPF parcial E nome (ambos devem bater)
         query = """
         SELECT DISTINCT
             e.cnpj_basico, e.razao_social, e.natureza_juridica, e.porte_empresa, e.capital_social,
@@ -72,26 +76,26 @@ def search_companies_by_cpf(cpf):
         FROM socios s
         JOIN empresas e ON s.cnpj_basico = e.cnpj_basico
         LEFT JOIN estabelecimento est ON e.cnpj_basico = est.cnpj_basico AND est.matriz_filial = '1'
-        WHERE s.cnpj_cpf_socio LIKE ? OR (? IS NOT NULL AND s.nome_socio LIKE ?)
+        WHERE s.cnpj_cpf_socio LIKE ?
+        AND UPPER(s.nome_socio) LIKE UPPER(?)
         """
 
-        # Parâmetros da query
-        cpf_pattern = f"%{cpf_middle}%"
-        nome_pattern = f"%{pessoa['nome']}%" if pessoa else None
+        # Parâmetros da query - CPF censurado no formato ***XXXXXX**
+        cpf_pattern = f"***{cpf_middle}**"
+        nome_pattern = f"%{pessoa['nome']}%"
 
-        cursor.execute(query, (cpf_pattern, nome_pattern, nome_pattern))
+        cursor.execute(query, (cpf_pattern, nome_pattern))
         results = cursor.fetchall()
 
-        # Filtrar resultados para garantir que o match de CPF seja mais preciso
+        # Converter resultados para dicionários
         filtered_results = []
         for row in results:
             row_dict = dict(row)
 
-            # Verificar se o CPF parcial contém os dígitos do meio
-            if row_dict['cnpj_cpf_socio'] and cpf_middle in row_dict['cnpj_cpf_socio']:
-                filtered_results.append(row_dict)
-            # Ou se o nome bate (caso exista)
-            elif pessoa and row_dict['nome_socio'] and pessoa['nome'].upper() in row_dict['nome_socio'].upper():
+            # Validação adicional: verificar se o nome realmente corresponde
+            # (comparação case-insensitive e parcial)
+            if (row_dict['nome_socio'] and
+                pessoa['nome'].upper() in row_dict['nome_socio'].upper()):
                 filtered_results.append(row_dict)
 
         return filtered_results
